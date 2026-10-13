@@ -1,5 +1,6 @@
 import { Dirent } from 'node:fs';
 import { readdir } from 'node:fs/promises';
+import { homedir } from 'node:os';
 import { basename, isAbsolute, join, normalize, resolve, sep } from 'node:path';
 
 export interface RegisteredProject {
@@ -23,6 +24,15 @@ export interface ProjectScannerOptions {
 
 const DEFAULT_MARKERS = ['app', 'conf'];
 
+/** Expande caminhos no formato `~/...` antes de normalizá-los. */
+export function expandHomePath(value: string): string {
+  if (value === '~') return homedir();
+  if (value.startsWith('~/') || value.startsWith('~\\')) {
+    return join(homedir(), value.slice(2));
+  }
+  return value;
+}
+
 /**
  * Localiza diretórios candidatos sem alterar o filesystem.
  *
@@ -35,10 +45,13 @@ export async function scanProjects(
   registeredProjects: readonly RegisteredProject[] = [],
   options: ProjectScannerOptions = {},
 ): Promise<DiscoveredProject[]> {
-  const rootPath = resolve(root);
+  const rootPath = resolve(expandHomePath(root));
   const markers = options.markers ?? DEFAULT_MARKERS;
   const registeredByPath = new Map(
-    registeredProjects.map((project) => [normalize(resolve(project.path)), project]),
+    registeredProjects.map((project) => [
+      normalize(resolve(expandHomePath(project.path))),
+      project,
+    ]),
   );
   const entries = await readdir(rootPath, { withFileTypes: true });
   const directories = entries.filter((entry) => entry.isDirectory());
@@ -74,10 +87,12 @@ export function findOrphanCandidates(
  * Isso será obrigatório antes de backup, restauração ou limpeza.
  */
 export function isPathInside(root: string, candidate: string): boolean {
-  if (!isAbsolute(root) || !isAbsolute(candidate)) return false;
+  const expandedRoot = expandHomePath(root);
+  const expandedCandidate = expandHomePath(candidate);
+  if (!isAbsolute(expandedRoot) || !isAbsolute(expandedCandidate)) return false;
 
-  const normalizedRoot = normalize(resolve(root));
-  const normalizedCandidate = normalize(resolve(candidate));
+  const normalizedRoot = normalize(resolve(expandedRoot));
+  const normalizedCandidate = normalize(resolve(expandedCandidate));
   return (
     normalizedCandidate === normalizedRoot ||
     normalizedCandidate.startsWith(`${normalizedRoot}${sep}`)

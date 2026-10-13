@@ -2,6 +2,12 @@
 
 Add-on para o Local com ferramentas de manutenção e limpeza de ambientes WordPress.
 
+> **Importante:** alterações Git não são commitadas nem enviadas automaticamente.
+> Commits, pushes e operações que alteram o histórico exigem autorização explícita.
+
+Consulte [`docs/project-context.md`](docs/project-context.md) para o contexto
+arquitetural e as regras de desenvolvimento.
+
 ## Objetivos
 
 - criar e gerenciar backups locais de ambientes;

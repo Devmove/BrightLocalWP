@@ -1,6 +1,6 @@
 import { addIpcAsyncListener, getServiceContainer } from '@getflywheel/local/main';
 import { dirname } from 'node:path';
-import { findOrphanCandidates, scanProjects } from './core/project-scanner';
+import { expandHomePath, findOrphanCandidates, scanProjects } from './core/project-scanner';
 
 /** Registra a ponte segura entre a interface e o scanner no processo principal. */
 export default function main(): void {
@@ -13,7 +13,7 @@ export default function main(): void {
       .filter((site: any) => site && typeof site.id === 'string' && typeof site.path === 'string')
       .map((site: any) => ({
         id: site.id,
-        path: site.path,
+        path: expandHomePath(site.path),
       }));
     const roots = [...new Set(registeredProjects.map((project) => dirname(project.path)))];
     const results = await Promise.all(

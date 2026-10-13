@@ -1,6 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import {
+  expandHomePath,
   findOrphanCandidates,
   RegisteredProject,
   scanProjects,
@@ -22,7 +23,7 @@ A varredura é somente leitura e não remove nem altera arquivos.
 async function readRegisteredProjects(filePath?: string): Promise<RegisteredProject[]> {
   if (!filePath) return [];
 
-  const content = await readFile(resolve(filePath), 'utf8');
+  const content = await readFile(resolve(expandHomePath(filePath)), 'utf8');
   const parsed: unknown = JSON.parse(content);
   if (!Array.isArray(parsed)) {
     throw new Error('O arquivo de projetos registrados deve conter um array JSON.');
