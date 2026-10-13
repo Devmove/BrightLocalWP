@@ -2,6 +2,9 @@
   "name": "bright-local-wp",
   "productName": "BrightLocalWP",
   "version": "0.1.0",
+  "slug": "brightlocalwp",
+  "bgColor": "#2271b1",
+  "icon": "icon.svg",
   "description": "Ferramentas de manutenção e limpeza para ambientes do Local.",
   "main": "dist/main.js",
   "renderer": "dist/renderer.js",
@@ -26,6 +29,7 @@
     "node": ">=18"
   },
   "devDependencies": {
+    "@getflywheel/local": "^9.2.4",
     "@types/node": "^22.0.0",
     "tar": "^7.4.3",
     "tsx": "^4.19.0",

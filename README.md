@@ -42,9 +42,16 @@ npm run package
 O arquivo será criado em `build/BrightLocalWP-0.1.0.tar.gz`. Ele contém os
 arquivos compilados e pode ser extraído no diretório de add-ons do Local.
 
-O add-on segue a estrutura de entradas `main` e `renderer` esperada pelo Local.
-A integração com a versão específica da API do Local será feita depois de validar o
-contrato de leitura/registro de sites e seus caminhos em cada sistema operacional.
+O add-on segue a estrutura de entradas `main` e `renderer` esperada pelo Local e usa
+a API do add-on para obter os sites registrados e comunicar-se com o scanner.
+
+## Interface no Local
+
+Depois de extrair o pacote no diretório de add-ons do Local e reiniciar o aplicativo,
+ative **BrightLocalWP** em *Settings > Add-ons*. A interface aparece no painel de
+detalhes de um site, na seção **Manutenção do ambiente**. O botão **Verificar
+diretório** executa uma varredura somente leitura e lista projetos registrados,
+candidatos órfãos e diretórios ignorados.
 
 ## Princípios de segurança
 

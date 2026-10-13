@@ -1,7 +1,28 @@
-/**
- * Entry point reservado para integrações que não dependem da interface do Local.
- * A assinatura será adaptada à versão instalada da API do Local na próxima etapa.
- */
-export default function main(): void {
-  // Intencionalmente vazio: o núcleo pode ser usado sem iniciar processos.
+import { getServiceContainer } from '@getflywheel/local/main';
+import { dirname } from 'node:path';
+import { findOrphanCandidates, scanProjects } from './core/project-scanner';
+
+interface ScanRequest {
+  root: string;
+}
+
+/** Registra a ponte segura entre a interface e o scanner no processo principal. */
+export default function main(context: any): void {
+  const { ipcMain } = context.electron;
+  const serviceContainer = getServiceContainer();
+  const siteData = serviceContainer.cradle.siteData;
+
+  ipcMain.handle('brightlocalwp:scan', async (_event: unknown, request: ScanRequest) => {
+    if (!request || typeof request.root !== 'string') {
+      throw new Error('Diretório de varredura inválido.');
+    }
+
+    const sites = siteData.getSites();
+    const registeredProjects = Object.values(sites).map((site: any) => ({
+      id: site.id,
+      path: site.path,
+    }));
+    const projects = await scanProjects(dirname(request.root), registeredProjects);
+    return { projects, orphans: findOrphanCandidates(projects) };
+  });
 }

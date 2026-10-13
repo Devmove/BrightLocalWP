@@ -22,7 +22,7 @@ async function main() {
       portable: true,
       prefix: packageJson.productName,
     },
-    ['README.md', 'package.json', 'dist'],
+    ['README.md', 'package.json', 'style.css', 'icon.svg', 'dist'],
   );
   console.log(`Pacote criado: ${path.relative(root, output)}`);
 }
