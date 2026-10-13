@@ -24,6 +24,24 @@ npm run check
 npm run build
 ```
 
+## Uso da primeira versão
+
+Após o build, a ferramenta de diagnóstico pode ser executada diretamente:
+
+```bash
+node dist/cli.js scan "$HOME/Local Sites"
+node dist/cli.js scan "$HOME/Local Sites" --registered projetos.json --json
+```
+
+Para gerar o pacote instalável:
+
+```bash
+npm run package
+```
+
+O arquivo será criado em `build/BrightLocalWP-0.1.0.tar.gz`. Ele contém os
+arquivos compilados e pode ser extraído no diretório de add-ons do Local.
+
 O add-on segue a estrutura de entradas `main` e `renderer` esperada pelo Local.
 A integração com a versão específica da API do Local será feita depois de validar o
 contrato de leitura/registro de sites e seus caminhos em cada sistema operacional.
