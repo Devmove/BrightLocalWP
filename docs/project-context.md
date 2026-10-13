@@ -19,8 +19,13 @@ O projeto possui:
 
 - núcleo de descoberta em `src/core/project-scanner.ts`;
 - CLI de diagnóstico em `src/cli.ts`;
-- entrada principal do add-on em `src/main.ts`;
-- interface global nas preferências do Local em `src/renderer.ts`;
+- núcleo de restauração em `src/core/site-restore.ts` (análise do diretório,
+  sugestão de nome/domínio, clonagem de serviços com portas livres,
+  detecção do domínio antigo e importação do dump SQL com o binário do Local);
+- entrada principal do add-on em `src/main.ts`, com os canais
+  `brightlocalwp:scan`, `brightlocalwp:restore-preview` e `brightlocalwp:restore`;
+- interface global nas preferências do Local em `src/renderer.ts`, com botão
+  **Restaurar** ao lado de cada órfão candidato;
 - comunicação entre renderer e processo principal usando `ipcAsync` e
   `addIpcAsyncListener`;
 - build TypeScript;

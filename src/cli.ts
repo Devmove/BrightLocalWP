@@ -6,17 +6,19 @@ import {
   RegisteredProject,
   scanProjects,
 } from './core/project-scanner';
+import { analyzeOrphan, suggestRestore } from './core/site-restore';
 
 function printHelp(): void {
   console.log(`BrightLocalWP — diagnóstico de ambientes Local
 
 Uso:
   brightlocalwp scan <diretório> [--registered <arquivo.json>] [--json]
+  brightlocalwp analyze <diretório-do-projeto> [--json]
 
 O arquivo de projetos registrados deve conter um array no formato:
   [{ "id": "site-id", "path": "/caminho/absoluto" }]
 
-A varredura é somente leitura e não remove nem altera arquivos.
+A varredura e a análise são somente leitura e não removem nem alteram arquivos.
 `);
 }
 
@@ -80,14 +82,46 @@ async function scan(args: string[]): Promise<void> {
   }
 }
 
+async function analyze(args: string[]): Promise<void> {
+  const target = args[0];
+  if (!target) throw new Error('Informe o diretório do projeto a ser analisado.');
+  const json = args.includes('--json');
+
+  const projectPath = resolve(expandHomePath(target));
+  const evidence = await analyzeOrphan(projectPath);
+  const suggestion = suggestRestore(projectPath);
+
+  if (json) {
+    console.log(JSON.stringify({ evidence, suggestion }, null, 2));
+    return;
+  }
+
+  console.log(`Projeto: ${projectPath}`);
+  console.log(`Estrutura app/conf: ${evidence.hasAppDir && evidence.hasConfDir ? 'sim' : 'não'}`);
+  console.log(`Servidor web: ${evidence.webServer}`);
+  console.log(`Pista de PHP: ${evidence.phpHint ?? 'não identificada'}`);
+  console.log(`wp-config.php: ${evidence.hasWpConfig ? 'encontrado' : 'não encontrado'}`);
+  console.log(`Dumps SQL: ${evidence.sqlDumps.length}`);
+  for (const dump of evidence.sqlDumps) console.log(`- ${dump}`);
+  console.log(`Nome sugerido: ${suggestion.name}`);
+  console.log(`Domínio sugerido: ${suggestion.domain}`);
+}
+
 async function main(): Promise<void> {
   const [command, ...args] = process.argv.slice(2);
   if (!command || command === '--help' || command === '-h') {
     printHelp();
     return;
   }
-  if (command !== 'scan') throw new Error(`Comando desconhecido: ${command}`);
-  await scan(args);
+  if (command === 'scan') {
+    await scan(args);
+    return;
+  }
+  if (command === 'analyze') {
+    await analyze(args);
+    return;
+  }
+  throw new Error(`Comando desconhecido: ${command}`);
 }
 
 main().catch((error: unknown) => {

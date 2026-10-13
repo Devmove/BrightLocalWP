@@ -27,6 +27,13 @@
 .bright-local-wp__button:disabled { opacity: .6; cursor: wait; }
 .bright-local-wp__notice { padding: 10px 12px; border-left: 3px solid #f0ad4e; background: #fff8e8; color: #735b25; font-size: 12px; }
 .bright-local-wp__error { color: #b42318; font-size: 13px; }
+.bright-local-wp__success { padding: 10px 12px; border-left: 3px solid #16803c; background: #eaf7ee; color: #14532d; font-size: 13px; }
+.bright-local-wp__row { flex-wrap: wrap; }
+.bright-local-wp__actions { margin-left: auto; display: flex; gap: 8px; }
+.bright-local-wp__restore-button { padding: 6px 10px; border: 1px solid #2271b1; border-radius: 4px; background: #fff; color: #2271b1; cursor: pointer; font-weight: 600; }
+.bright-local-wp__restore-button:disabled { opacity: .6; cursor: wait; }
+.bright-local-wp__delete-button { padding: 6px 10px; border: 1px solid #b42318; border-radius: 4px; background: #fff; color: #b42318; cursor: pointer; font-weight: 600; }
+.bright-local-wp__delete-button:disabled { opacity: .6; cursor: wait; }
 .bright-local-wp__result { margin-top: 16px; }
 .bright-local-wp__metrics { gap: 8px 12px; flex-wrap: wrap; }
 .bright-local-wp__metrics strong { font-size: 20px; }

@@ -78,6 +78,39 @@ analisa as pastas onde os projetos registrados estão armazenados e lista projet
 registrados, candidatos órfãos e diretórios ignorados. A ferramenta é global e não
 fica vinculada a um site específico.
 
+## Restauração de projetos órfãos
+
+Ao lado de cada órfão candidato há um botão **Restaurar**. O fluxo é:
+
+1. o add-on analisa o diretório (servidor web, `wp-config.php`, dumps SQL);
+2. sugere nome e domínio livre e escolhe um site registrado com o mesmo
+   servidor web como modelo de configuração;
+3. exibe tudo para confirmação explícita;
+4. cria backup de `sites.json`, registra o projeto com portas livres e
+   atualiza a lista de sites;
+5. provisiona o runtime como o Local faz ao criar um site: compila os configs,
+   saneia datadir parcial (movido para backup lateral, nunca apagado),
+   inicializa o datadir do MySQL, inicia os serviços, define a senha do banco,
+   cria o banco `local` e importa o dump SQL (`local.sql` ou o primeiro `.sql`);
+6. detecta o domínio antigo gravado no banco e avisa quando ele difere do
+   novo domínio, para ajuste posterior dos endereços no WordPress;
+7. emite atualização para a interface do Local (`refreshSites` + `siteAdded`).
+
+## Exclusão de projetos órfãos
+
+Ao lado de cada órfão candidato há também um botão **Excluir**. O fluxo é:
+
+1. mostra o tamanho da pasta para confirmação explícita;
+2. move a pasta para a lixeira do sistema (reversível, nada é apagado
+   definitivamente);
+3. atualiza a lista de órfãos na interface.
+
+A exclusão só é permitida para diretórios dentro das raízes de sites, com
+estrutura mínima e sem registro no Local.
+
+Nenhum arquivo do projeto é apagado ou movido. Pela CLI, `node dist/cli.js
+analyze <diretório>` mostra a mesma análise em modo somente leitura.
+
 ## Princípios de segurança
 
 1. detectar antes de agir;
