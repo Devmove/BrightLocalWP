@@ -1,14 +1,25 @@
-import { dirname } from 'node:path';
+import { resolve } from 'node:path';
 import { ipcRenderer } from 'electron';
 
 function BrightLocalWPPanel({ React, site }: { React: any; site: any }): any {
   const [state, setState] = React.useState({ loading: false, error: '', result: null as any });
+  const sitePath = typeof site?.path === 'string' ? site.path : '';
+  const siteName = typeof site?.name === 'string' ? site.name : 'ambiente selecionado';
 
   const scan = async () => {
+    if (!sitePath) {
+      setState({
+        loading: false,
+        error: 'O Local não forneceu o caminho deste ambiente.',
+        result: null,
+      });
+      return;
+    }
+
     setState({ loading: true, error: '', result: null });
     try {
       const result = await ipcRenderer.invoke('brightlocalwp:scan', {
-        root: site.path,
+        root: sitePath,
       });
       setState({ loading: false, error: '', result });
     } catch (error) {
@@ -26,12 +37,12 @@ function BrightLocalWPPanel({ React, site }: { React: any; site: any }): any {
     React.createElement('div', { className: 'bright-local-wp__header', key: 'header' },
       React.createElement('div', null,
         React.createElement('span', { className: 'bright-local-wp__eyebrow' }, 'BRIGHTLOCALWP'),
-        React.createElement('h3', null, 'Manutenção do ambiente'),
+        React.createElement('h3', null, `Manutenção: ${siteName}`),
       ),
       React.createElement('button', {
         className: 'bright-local-wp__button',
         onClick: scan,
-        disabled: state.loading,
+        disabled: state.loading || !sitePath,
       }, buttonLabel),
     ),
     React.createElement('p', { className: 'bright-local-wp__description', key: 'description' },
@@ -65,7 +76,7 @@ function BrightLocalWPPanel({ React, site }: { React: any; site: any }): any {
 export default function renderer(context: any): void {
   const { React, hooks } = context;
   hooks.addContent('stylesheets', () => {
-    const path = require('node:path').resolve(__dirname, '../style.css');
+    const path = resolve(__dirname, '../style.css');
     return React.createElement('link', {
       rel: 'stylesheet',
       href: path,

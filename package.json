@@ -18,6 +18,7 @@
     "build": "tsc",
     "check": "tsc --noEmit",
     "dev:install": "npm run build && node scripts/install-addon.cjs",
+    "lint": "eslint .",
     "package": "npm run build && node scripts/package.cjs",
     "test": "node --test --import tsx",
     "test:watch": "node --test --import tsx --watch"
@@ -35,6 +36,9 @@
   "devDependencies": {
     "@getflywheel/local": "^9.2.4",
     "@types/node": "^22.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
+    "eslint": "^9.0.0",
     "tar": "^7.4.3",
     "tsx": "^4.19.0",
     "typescript": "^5.6.0"

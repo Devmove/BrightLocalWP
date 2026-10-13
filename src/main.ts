@@ -18,10 +18,12 @@ export default function main(context: any): void {
     }
 
     const sites = siteData.getSites();
-    const registeredProjects = Object.values(sites).map((site: any) => ({
-      id: site.id,
-      path: site.path,
-    }));
+    const registeredProjects = Object.values(sites)
+      .filter((site: any) => site && typeof site.id === 'string' && typeof site.path === 'string')
+      .map((site: any) => ({
+        id: site.id,
+        path: site.path,
+      }));
     const projects = await scanProjects(dirname(request.root), registeredProjects);
     return { projects, orphans: findOrphanCandidates(projects) };
   });
