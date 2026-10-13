@@ -8,6 +8,10 @@
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
+.bright-local-wp-settings { padding: 4px 0 12px; }
+.bright-local-wp-settings details { margin-top: 14px; }
+.bright-local-wp-settings summary { cursor: pointer; color: #4f5b66; font-size: 12px; }
+
 .bright-local-wp__header,
 .bright-local-wp__metrics {
   display: flex;

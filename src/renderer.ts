@@ -1,26 +1,13 @@
 import { resolve } from 'node:path';
-import { ipcRenderer } from 'electron';
+import { ipcAsync } from '@getflywheel/local/renderer';
 
-function BrightLocalWPPanel({ React, site }: { React: any; site: any }): any {
+function ProjectScanner({ React }: { React: any }): any {
   const [state, setState] = React.useState({ loading: false, error: '', result: null as any });
-  const sitePath = typeof site?.path === 'string' ? site.path : '';
-  const siteName = typeof site?.name === 'string' ? site.name : 'ambiente selecionado';
 
   const scan = async () => {
-    if (!sitePath) {
-      setState({
-        loading: false,
-        error: 'O Local não forneceu o caminho deste ambiente.',
-        result: null,
-      });
-      return;
-    }
-
     setState({ loading: true, error: '', result: null });
     try {
-      const result = await ipcRenderer.invoke('brightlocalwp:scan', {
-        root: sitePath,
-      });
+      const result = await ipcAsync('brightlocalwp:scan');
       setState({ loading: false, error: '', result });
     } catch (error) {
       setState({
@@ -32,59 +19,71 @@ function BrightLocalWPPanel({ React, site }: { React: any; site: any }): any {
   };
 
   const result = state.result;
-  const buttonLabel = state.loading ? 'Verificando…' : 'Verificar diretório';
-  const children = [
-    React.createElement('div', { className: 'bright-local-wp__header', key: 'header' },
-      React.createElement('div', null,
-        React.createElement('span', { className: 'bright-local-wp__eyebrow' }, 'BRIGHTLOCALWP'),
-        React.createElement('h3', null, `Manutenção: ${siteName}`),
-      ),
-      React.createElement('button', {
-        className: 'bright-local-wp__button',
-        onClick: scan,
-        disabled: state.loading || !sitePath,
-      }, buttonLabel),
+  const projects = Array.isArray(result?.projects) ? result.projects : [];
+  const orphans = Array.isArray(result?.orphans) ? result.orphans : [];
+  const roots = Array.isArray(result?.roots) ? result.roots : [];
+
+  return React.createElement('div', { className: 'bright-local-wp-settings' },
+    React.createElement('p', { className: 'bright-local-wp__description' },
+      'Analise as pastas de projetos do Local e encontre ambientes que existem no disco, mas não estão listados na interface.',
     ),
-    React.createElement('p', { className: 'bright-local-wp__description', key: 'description' },
-      'Verifique a estrutura deste ambiente e encontre diretórios que não aparecem no Local.',
+    React.createElement('div', { className: 'bright-local-wp__notice' },
+      'Modo seguro: a verificação é somente leitura. Nenhum arquivo será removido ou alterado.',
     ),
-    React.createElement('div', { className: 'bright-local-wp__notice', key: 'notice' },
-      'Modo seguro: esta versão apenas lê os diretórios. Nenhum arquivo será removido.',
-    ),
-    state.error && React.createElement('p', { className: 'bright-local-wp__error', key: 'error' }, state.error),
-    result && React.createElement('div', { className: 'bright-local-wp__result', key: 'result' },
-      React.createElement('div', { className: 'bright-local-wp__metrics' },
-        React.createElement('strong', null, String(result.projects.length)),
-        React.createElement('span', null, 'diretórios candidatos'),
-        React.createElement('strong', null, String(result.orphans.length)),
-        React.createElement('span', null, 'órfãos detectados'),
+    React.createElement('button', {
+      className: 'bright-local-wp__button',
+      onClick: scan,
+      disabled: state.loading,
+    }, state.loading ? 'Verificando…' : 'Verificar projetos'),
+    state.error && React.createElement('p', { className: 'bright-local-wp__error' }, state.error),
+    result && React.createElement('div', { className: 'bright-local-wp__result' },
+      React.createElement('p', null, `${projects.length} diretório(s) encontrado(s), ${orphans.length} órfão(s) candidato(s).`),
+      roots.length > 0 && React.createElement('details', null,
+        React.createElement('summary', null, 'Diretórios analisados'),
+        React.createElement('ul', { className: 'bright-local-wp__list' },
+          roots.map((root: unknown) => React.createElement('li', { key: String(root) },
+            React.createElement('code', null, String(root)),
+          )),
+        ),
       ),
       React.createElement('ul', { className: 'bright-local-wp__list' },
-        result.projects.map((project: any) => React.createElement('li', { key: project.path },
+        projects.map((project: any) => React.createElement('li', { key: String(project.path) },
           React.createElement('span', { className: project.registeredProjectId ? 'is-registered' : 'is-candidate' },
-            project.registeredProjectId ? 'Registrado' : project.looksLikeLocalProject ? 'Candidato' : 'Ignorado',
+            project.registeredProjectId ? 'Registrado' : project.looksLikeLocalProject ? 'Órfão candidato' : 'Ignorado',
           ),
-          React.createElement('code', null, project.name),
+          React.createElement('code', null, String(project.path)),
         )),
       ),
     ),
-  ].filter(Boolean);
-
-  return React.createElement('section', { className: 'bright-local-wp' }, children);
+  );
 }
 
 export default function renderer(context: any): void {
   const { React, hooks } = context;
   hooks.addContent('stylesheets', () => {
-    const path = resolve(__dirname, '../style.css');
+    const stylesheetPath = resolve(__dirname, '../style.css');
     return React.createElement('link', {
       rel: 'stylesheet',
-      href: path,
+      href: stylesheetPath,
       key: 'bright-local-wp-stylesheet',
     });
   });
 
-  hooks.addContent('SiteInfoOverview', (site: any) =>
-    React.createElement(BrightLocalWPPanel, { React, site, key: 'bright-local-wp-panel' }),
-  );
+  hooks.addFilter('preferencesMenuItems', (menu: any[]) => {
+    menu.push({
+      path: 'bright-local-wp',
+      displayName: 'BrightLocalWP',
+      sections: [
+        {
+          rows: [
+            {
+              name: 'Projetos órfãos',
+              component: () => React.createElement(ProjectScanner, { React }),
+            },
+          ],
+        },
+      ],
+    });
+    return menu;
+  });
 }

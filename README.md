@@ -66,10 +66,11 @@ a API do add-on para obter os sites registrados e comunicar-se com o scanner.
 ## Interface no Local
 
 Depois de extrair o pacote no diretório de add-ons do Local e reiniciar o aplicativo,
-ative **BrightLocalWP** em *Settings > Add-ons*. A interface aparece no painel de
-detalhes de um site, na seção **Manutenção do ambiente**. O botão **Verificar
-diretório** executa uma varredura somente leitura e lista projetos registrados,
-candidatos órfãos e diretórios ignorados.
+ative **BrightLocalWP** em *Settings > Add-ons*. Depois, abra a tela de
+preferências do Local e selecione **BrightLocalWP**. O botão **Verificar projetos**
+analisa as pastas onde os projetos registrados estão armazenados e lista projetos
+registrados, candidatos órfãos e diretórios ignorados. A ferramenta é global e não
+fica vinculada a um site específico.
 
 ## Princípios de segurança
 
