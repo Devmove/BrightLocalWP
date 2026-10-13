@@ -42,6 +42,24 @@ npm run package
 O arquivo será criado em `build/BrightLocalWP-0.1.0.tar.gz`. Ele contém os
 arquivos compilados e pode ser extraído no diretório de add-ons do Local.
 
+## Atualização rápida durante o desenvolvimento
+
+O comando abaixo compila e atualiza diretamente o add-on instalado localmente:
+
+```bash
+npm run dev:install
+```
+
+Por padrão, o destino é configurado em `package.json` como
+`~/.config/Local/addons/bright-local-wp`. Para usar outro diretório sem alterar o
+arquivo:
+
+```bash
+BRIGHTLOCALWP_ADDON_DIR="/outro/diretorio/addons/bright-local-wp" npm run dev:install
+```
+
+Reinicie o Local após a atualização para recarregar o add-on.
+
 O add-on segue a estrutura de entradas `main` e `renderer` esperada pelo Local e usa
 a API do add-on para obter os sites registrados e comunicar-se com o scanner.
 

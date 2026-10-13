@@ -5,6 +5,9 @@
   "slug": "brightlocalwp",
   "bgColor": "#2271b1",
   "icon": "icon.svg",
+  "brightLocalWP": {
+    "localAddonPath": "~/.config/Local/addons/bright-local-wp"
+  },
   "description": "Ferramentas de manutenção e limpeza para ambientes do Local.",
   "main": "dist/main.js",
   "renderer": "dist/renderer.js",
@@ -14,6 +17,7 @@
   "scripts": {
     "build": "tsc",
     "check": "tsc --noEmit",
+    "dev:install": "npm run build && node scripts/install-addon.cjs",
     "package": "npm run build && node scripts/package.cjs",
     "test": "node --test --import tsx",
     "test:watch": "node --test --import tsx --watch"
