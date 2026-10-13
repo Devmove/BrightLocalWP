@@ -1,0 +1,29 @@
+{
+  "name": "bright-local-wp",
+  "productName": "BrightLocalWP",
+  "version": "0.1.0",
+  "description": "Ferramentas de manutenção e limpeza para ambientes do Local.",
+  "main": "dist/main.js",
+  "renderer": "dist/renderer.js",
+  "scripts": {
+    "build": "tsc",
+    "check": "tsc --noEmit",
+    "test": "node --test --import tsx",
+    "test:watch": "node --test --import tsx --watch"
+  },
+  "keywords": [
+    "localwp",
+    "local",
+    "wordpress",
+    "addon"
+  ],
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}
