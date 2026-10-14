@@ -62,26 +62,34 @@ html.Theme__Dark .bright-local-wp-settings {
 
 .bright-local-wp__description { color: var(--blw-muted); font-size: 13px; line-height: 1.5; }
 
-.bright-local-wp__button { padding: 8px 12px; border: 0; border-radius: 4px; background: var(--blw-primary); color: var(--blw-primary-contrast); cursor: pointer; font-weight: 600; }
+.bright-local-wp__button { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border: 0; border-radius: 4px; background: var(--blw-primary); color: var(--blw-primary-contrast); cursor: pointer; font-weight: 600; }
 .bright-local-wp__button:disabled { opacity: .6; cursor: wait; }
 
-.bright-local-wp__notice { padding: 10px 12px; border-left: 3px solid var(--blw-notice-border); background: var(--blw-notice-bg); color: var(--blw-notice-text); font-size: 12px; }
+.bright-local-wp__spinner { display: inline-block; width: 12px; height: 12px; flex: none; border: 2px solid transparent; border-top-color: currentColor; border-right-color: currentColor; border-radius: 50%; animation: bright-local-wp-spin 0.8s linear infinite; }
+@keyframes bright-local-wp-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .bright-local-wp__spinner { animation: none; border-color: currentColor; }
+}
+
+.bright-local-wp__notice { margin: 0 0 14px; padding: 10px 12px; border-left: 3px solid var(--blw-notice-border); background: var(--blw-notice-bg); color: var(--blw-notice-text); font-size: 12px; }
 .bright-local-wp__error { color: var(--blw-error-text); font-size: 13px; }
 .bright-local-wp__success { padding: 10px 12px; border-left: 3px solid var(--blw-success-border); background: var(--blw-success-bg); color: var(--blw-success-text); font-size: 13px; }
 
 .bright-local-wp__row { flex-wrap: wrap; }
 .bright-local-wp__actions { margin-left: auto; display: flex; gap: 8px; }
-.bright-local-wp__restore-button { padding: 6px 10px; border: 1px solid var(--blw-primary); border-radius: 4px; background: var(--blw-surface); color: var(--blw-primary); cursor: pointer; font-weight: 600; }
+.bright-local-wp__restore-button { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border: 1px solid var(--blw-primary); border-radius: 4px; background: var(--blw-surface); color: var(--blw-primary); cursor: pointer; font-weight: 600; }
 .bright-local-wp__restore-button:disabled { opacity: .6; cursor: wait; }
-.bright-local-wp__delete-button { padding: 6px 10px; border: 1px solid var(--blw-danger-border); border-radius: 4px; background: var(--blw-surface); color: var(--blw-danger-text); cursor: pointer; font-weight: 600; }
+.bright-local-wp__delete-button { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border: 1px solid var(--blw-danger-border); border-radius: 4px; background: var(--blw-surface); color: var(--blw-danger-text); cursor: pointer; font-weight: 600; }
 .bright-local-wp__delete-button:disabled { opacity: .6; cursor: wait; }
-.bright-local-wp__cancel-button { padding: 6px 10px; border: 1px solid var(--blw-cancel-border); border-radius: 4px; background: var(--blw-surface); color: var(--blw-cancel-text); cursor: pointer; font-weight: 600; }
+.bright-local-wp__cancel-button { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border: 1px solid var(--blw-cancel-border); border-radius: 4px; background: var(--blw-surface); color: var(--blw-cancel-text); cursor: pointer; font-weight: 600; }
 .bright-local-wp__cancel-button:disabled { opacity: .6; cursor: wait; }
 
 .bright-local-wp-settings button:focus-visible,
 .bright-local-wp-settings summary:focus-visible { outline: 2px solid var(--blw-focus); outline-offset: 2px; }
 
 .bright-local-wp__confirm { margin-top: 14px; padding: 14px; border: 1px solid var(--blw-border); border-left: 4px solid var(--blw-primary); border-radius: 4px; background: var(--blw-confirm-bg); color: var(--blw-text); }
+.bright-local-wp__list li.bright-local-wp__confirm-row { display: block; border-top: none; padding: 2px 0 10px; }
+.bright-local-wp__list li.bright-local-wp__confirm-row .bright-local-wp__confirm { margin-top: 4px; }
 .bright-local-wp__confirm.is-danger { border-color: var(--blw-danger-border); background: var(--blw-danger-bg); }
 .bright-local-wp__confirm strong { display: block; margin-bottom: 8px; font-size: 14px; color: var(--blw-text); }
 .bright-local-wp__confirm ul { margin: 0 0 12px; padding-left: 18px; font-size: 12px; line-height: 1.6; color: var(--blw-text); }
@@ -89,6 +97,17 @@ html.Theme__Dark .bright-local-wp-settings {
 
 .bright-local-wp__result { margin-top: 16px; }
 .bright-local-wp__result > p { color: var(--blw-text); }
+.bright-local-wp__empty { color: var(--blw-muted); font-size: 13px; font-style: italic; }
+.bright-local-wp__toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 12px; }
+.bright-local-wp__filters { display: flex; gap: 6px; }
+.bright-local-wp__filter-button { padding: 6px 10px; border: 1px solid var(--blw-cancel-border); border-radius: 20px; background: transparent; color: var(--blw-muted); cursor: pointer; font-size: 12px; font-weight: 600; }
+.bright-local-wp__filter-button:disabled { opacity: .6; cursor: wait; }
+.bright-local-wp__filter-button.is-active { border-color: var(--blw-primary); background: var(--blw-primary); color: var(--blw-primary-contrast); }
+.bright-local-wp__search { flex: 1 1 160px; min-width: 140px; padding: 6px 10px; border: 1px solid var(--blw-cancel-border); border-radius: 4px; background: var(--blw-surface); color: var(--blw-text); font-size: 12px; }
+.bright-local-wp__search::placeholder { color: var(--blw-faint); }
+.bright-local-wp__search:disabled { opacity: .6; }
+.bright-local-wp__sort { padding: 6px 8px; border: 1px solid var(--blw-cancel-border); border-radius: 4px; background: var(--blw-surface); color: var(--blw-text); font-size: 12px; cursor: pointer; }
+.bright-local-wp__sort:disabled { opacity: .6; cursor: wait; }
 .bright-local-wp__list { margin: 14px 0 0; padding: 0; list-style: none; }
 .bright-local-wp__list li { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-top: 1px solid var(--blw-row-border); font-size: 12px; }
 .bright-local-wp__list span { min-width: 78px; font-weight: 600; }

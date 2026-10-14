@@ -10,6 +10,22 @@ interface PendingAction {
   danger: boolean;
 }
 
+function Spinner({ React }: { React: any }): any {
+  return React.createElement('span', {
+    className: 'bright-local-wp__spinner',
+    'aria-hidden': 'true',
+  });
+}
+
+type ListFilter = 'all' | 'registered' | 'orphan';
+type ListSort = 'registered-first' | 'orphan-first' | 'name';
+
+function projectStatus(project: any): 'registered' | 'orphan' | 'ignored' {
+  if (project.registeredProjectId) return 'registered';
+  if (project.looksLikeLocalProject) return 'orphan';
+  return 'ignored';
+}
+
 function ProjectScanner({ React }: { React: any }): any {
   const [state, setState] = React.useState({
     loading: false,
@@ -19,6 +35,10 @@ function ProjectScanner({ React }: { React: any }): any {
     deletingPath: '',
     pending: null as PendingAction | null,
     result: null as any,
+    scanned: false,
+    filter: 'all' as ListFilter,
+    search: '',
+    sort: 'registered-first' as ListSort,
   });
 
   const runScan = async (options: { clearMessages?: boolean } = {}) => {
@@ -31,7 +51,7 @@ function ProjectScanner({ React }: { React: any }): any {
     }));
     try {
       const result = await ipcAsync('brightlocalwp:scan');
-      setState((previous: any) => ({ ...previous, loading: false, result }));
+      setState((previous: any) => ({ ...previous, loading: false, result, scanned: true }));
     } catch (error) {
       setState((previous: any) => ({
         ...previous,
@@ -121,7 +141,7 @@ function ProjectScanner({ React }: { React: any }): any {
       const restored = await ipcAsync('brightlocalwp:restore', { path: projectPath });
       const warnings = Array.isArray(restored.warnings) ? restored.warnings : [];
       const status = restored.running
-        ? `Projeto "${restored.site.name}" restaurado e em execução como ${restored.site.domain}${restored.importedDump ? ' (banco importado)' : ''}.`
+        ? `Projeto "${restored.site.name}" restaurado e em execução como ${restored.site.domain}${restored.importedDump ? ' (banco importado)' : ''}. Abrindo o site…`
         : `Projeto "${restored.site.name}" registrado como ${restored.site.domain}, mas não está em execução.`;
       setState((previous: any) => ({
         ...previous,
@@ -165,22 +185,87 @@ function ProjectScanner({ React }: { React: any }): any {
   const deleting = state.deletingPath !== '';
   const busy = state.loading || restoring || deleting;
   const pending = state.pending as PendingAction | null;
+  const filter = state.filter as ListFilter;
+  const search = String(state.search ?? '').trim().toLowerCase();
+  const sort = state.sort as ListSort;
 
-  return React.createElement('div', { className: 'bright-local-wp-settings' },
-    React.createElement('p', { className: 'bright-local-wp__description' },
-      'Analise as pastas de projetos do Local e encontre ambientes que existem no disco, mas não estão listados na interface.',
-    ),
-    React.createElement('div', { className: 'bright-local-wp__notice' },
-      'Modo seguro: a verificação é somente leitura. A restauração registra e provisiona o projeto no Local; a exclusão move a pasta para a lixeira, sem apagar definitivamente.',
-    ),
-    React.createElement('button', {
-      className: 'bright-local-wp__button',
-      onClick: () => runScan({ clearMessages: true }),
-      disabled: busy,
-    }, state.loading ? 'Verificando…' : 'Verificar projetos'),
-    state.error && React.createElement('p', { className: 'bright-local-wp__error' }, state.error),
-    state.notice && React.createElement('p', { className: 'bright-local-wp__success' }, state.notice),
-    pending && React.createElement('div', { className: `bright-local-wp__confirm${pending.danger ? ' is-danger' : ''}` },
+  const statusRank = (status: string): number => {
+    if (sort === 'orphan-first') {
+      return status === 'orphan' ? 0 : status === 'registered' ? 1 : 2;
+    }
+    return status === 'registered' ? 0 : status === 'orphan' ? 1 : 2;
+  };
+
+  const visibleProjects = projects
+    .filter((project: any) => {
+      const status = projectStatus(project);
+      if (filter === 'registered' && status !== 'registered') return false;
+      if (filter === 'orphan' && status !== 'orphan') return false;
+      if (search) {
+        const haystack = `${String(project.name ?? '')} ${String(project.path ?? '')}`.toLowerCase();
+        if (!haystack.includes(search)) return false;
+      }
+      return true;
+    })
+    .sort((a: any, b: any) => {
+      if (sort === 'name') {
+        return String(a.name ?? '').localeCompare(String(b.name ?? ''), 'pt-BR');
+      }
+      const rank = statusRank(projectStatus(a)) - statusRank(projectStatus(b));
+      if (rank !== 0) return rank;
+      return String(a.name ?? '').localeCompare(String(b.name ?? ''), 'pt-BR');
+    });
+
+  const setFilter = (value: ListFilter) => {
+    setState((previous: any) => ({ ...previous, filter: value }));
+  };
+  const setSearch = (value: string) => {
+    setState((previous: any) => ({ ...previous, search: value }));
+  };
+  const setSort = (value: ListSort) => {
+    setState((previous: any) => ({ ...previous, sort: value }));
+  };
+
+  const renderToolbar = () => {
+    const filterButton = (value: ListFilter, label: string) =>
+      React.createElement('button', {
+        key: value,
+        className: `bright-local-wp__filter-button${filter === value ? ' is-active' : ''}`,
+        disabled: busy,
+        onClick: () => setFilter(value),
+      }, label);
+    return React.createElement('div', { className: 'bright-local-wp__toolbar' },
+      React.createElement('div', { className: 'bright-local-wp__filters', role: 'group', 'aria-label': 'Filtrar por status' },
+        filterButton('all', 'Todos'),
+        filterButton('registered', 'Registrados'),
+        filterButton('orphan', 'Órfãos'),
+      ),
+      React.createElement('input', {
+        className: 'bright-local-wp__search',
+        type: 'search',
+        placeholder: 'Buscar por nome…',
+        value: state.search,
+        disabled: busy,
+        onChange: (event: any) => setSearch(event?.target?.value ?? ''),
+        'aria-label': 'Buscar projeto por nome',
+      }),
+      React.createElement('select', {
+        className: 'bright-local-wp__sort',
+        value: sort,
+        disabled: busy,
+        onChange: (event: any) => setSort(event?.target?.value ?? 'registered-first'),
+        'aria-label': 'Ordenar projetos',
+      },
+        React.createElement('option', { value: 'registered-first' }, 'Registrados primeiro'),
+        React.createElement('option', { value: 'orphan-first' }, 'Órfãos primeiro'),
+        React.createElement('option', { value: 'name' }, 'Nome (A–Z)'),
+      ),
+    );
+  };
+
+  const renderPendingBox = () => {
+    if (!pending) return null;
+    return React.createElement('div', { className: `bright-local-wp__confirm${pending.danger ? ' is-danger' : ''}` },
       React.createElement('strong', null, pending.title),
       React.createElement('ul', null,
         pending.lines.map((line: string, index: number) =>
@@ -199,7 +284,29 @@ function ProjectScanner({ React }: { React: any }): any {
           onClick: cancelPending,
         }, 'Cancelar'),
       ),
+    );
+  };
+
+  const scanLabel = state.loading
+    ? 'Verificando…'
+    : state.scanned
+      ? 'Buscar novamente'
+      : 'Verificar projetos';
+
+  return React.createElement('div', { className: 'bright-local-wp-settings' },
+    React.createElement('p', { className: 'bright-local-wp__description' },
+      'Analise as pastas de projetos do Local e encontre ambientes que existem no disco, mas não estão listados na interface.',
     ),
+    React.createElement('div', { className: 'bright-local-wp__notice' },
+      'Modo seguro: a verificação é somente leitura. A restauração registra e provisiona o projeto no Local; a exclusão move a pasta para a lixeira, sem apagar definitivamente.',
+    ),
+    React.createElement('button', {
+      className: 'bright-local-wp__button',
+      onClick: () => runScan({ clearMessages: true }),
+      disabled: busy,
+    }, ...(state.loading ? [React.createElement(Spinner, { React, key: 'spinner' }), scanLabel] : [scanLabel])),
+    state.error && React.createElement('p', { className: 'bright-local-wp__error' }, state.error),
+    state.notice && React.createElement('p', { className: 'bright-local-wp__success' }, state.notice),
     result && React.createElement('div', { className: 'bright-local-wp__result' },
       React.createElement('p', null, `${projects.length} diretório(s) encontrado(s), ${orphans.length} órfão(s) candidato(s).`),
       roots.length > 0 && React.createElement('details', null,
@@ -210,12 +317,17 @@ function ProjectScanner({ React }: { React: any }): any {
           )),
         ),
       ),
+      renderToolbar(),
+      visibleProjects.length === 0 && React.createElement('p', { className: 'bright-local-wp__empty' },
+        'Nenhum projeto corresponde ao filtro atual.',
+      ),
       React.createElement('ul', { className: 'bright-local-wp__list' },
-        projects.map((project: any) => {
+        visibleProjects.map((project: any) => {
           const isOrphan = project.looksLikeLocalProject && !project.registeredProjectId;
           const isRestoring = state.restoringPath === String(project.path);
           const isDeleting = state.deletingPath === String(project.path);
-          return React.createElement('li', { key: String(project.path), className: 'bright-local-wp__row' },
+          const showPendingHere = pending?.projectPath === String(project.path);
+          const row = React.createElement('li', { key: String(project.path), className: 'bright-local-wp__row' },
             React.createElement('span', { className: project.registeredProjectId ? 'is-registered' : 'is-candidate' },
               project.registeredProjectId ? 'Registrado' : project.looksLikeLocalProject ? 'Órfão candidato' : 'Ignorado',
             ),
@@ -225,14 +337,22 @@ function ProjectScanner({ React }: { React: any }): any {
                 className: 'bright-local-wp__restore-button',
                 disabled: busy,
                 onClick: () => askRestore(project),
-              }, isRestoring ? 'Restaurando…' : 'Restaurar'),
+              }, ...(isRestoring ? [React.createElement(Spinner, { React, key: 'spinner' }), 'Restaurando…'] : ['Restaurar'])),
               React.createElement('button', {
                 className: 'bright-local-wp__delete-button',
                 disabled: busy,
                 onClick: () => askDelete(project),
-              }, isDeleting ? 'Excluindo…' : 'Excluir'),
+              }, ...(isDeleting ? [React.createElement(Spinner, { React, key: 'spinner' }), 'Excluindo…'] : ['Excluir'])),
             ),
           );
+          if (!showPendingHere) return row;
+          return [
+            row,
+            React.createElement('li', {
+              key: `${String(project.path)}:confirm`,
+              className: 'bright-local-wp__confirm-row',
+            }, renderPendingBox()),
+          ];
         }),
       ),
     ),
