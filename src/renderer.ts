@@ -2,6 +2,28 @@ import { resolve } from 'node:path';
 import { ipcAsync } from '@getflywheel/local/renderer';
 import { Lang, resolveLanguage, translate } from './core/i18n';
 
+const LANGUAGE_STORAGE_KEY = 'brightlocalwp:language';
+
+/** Espelha o idioma no localStorage para leitura síncrona no registro do menu. */
+function mirrorLanguage(value: Lang): void {
+  try {
+    (globalThis as any)?.localStorage?.setItem(LANGUAGE_STORAGE_KEY, value);
+  } catch {
+    // Armazenamento indisponível: o título usa o padrão.
+  }
+}
+
+function storedLanguage(): Lang {
+  try {
+    return resolveLanguage(
+      (globalThis as any)?.localStorage?.getItem(LANGUAGE_STORAGE_KEY),
+      'pt',
+    );
+  } catch {
+    return 'pt';
+  }
+}
+
 interface PendingAction {
   kind: 'restore' | 'delete';
   projectPath: string;
@@ -63,6 +85,7 @@ function ProjectScanner({ React }: { React: any }): any {
       ipcAsync('brightlocalwp:get-language')
         .then((response: any) => {
           const language = resolveLanguage(response?.language, lang);
+          mirrorLanguage(language);
           setState((previous: any) => ({ ...previous, language }));
         })
         .catch(() => {
@@ -73,6 +96,7 @@ function ProjectScanner({ React }: { React: any }): any {
 
   const changeLanguage = async (value: string) => {
     const language = resolveLanguage(value, lang);
+    mirrorLanguage(language);
     setState((previous: any) => ({ ...previous, language }));
     try {
       await ipcAsync('brightlocalwp:set-language', { language });
@@ -485,6 +509,9 @@ export default function renderer(context: any): void {
   });
 
   hooks.addFilter('preferencesMenuItems', (menu: any[]) => {
+    // O filtro é avaliado a cada render das preferências, então o título
+    // acompanha o idioma espelhado localmente.
+    const language = storedLanguage();
     menu.push({
       path: 'bright-local-wp',
       displayName: 'BrightLocalWP',
@@ -492,7 +519,7 @@ export default function renderer(context: any): void {
         {
           rows: [
             {
-              name: 'Projetos órfãos',
+              name: translate(language, 'section.title'),
               component: () => React.createElement(ProjectScanner, { React }),
             },
           ],

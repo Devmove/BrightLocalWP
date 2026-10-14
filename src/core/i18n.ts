@@ -125,6 +125,7 @@ const pt: Dict = {
   'cli.analyzeDomain': 'Domínio sugerido: {domain}',
   'cli.errorPrefix': 'Erro: {error}',
   'misc.unknownSize': 'tamanho desconhecido',
+  'section.title': 'Projetos órfãos',
 };
 
 const en: Dict = {
@@ -250,6 +251,7 @@ const en: Dict = {
   'cli.analyzeDomain': 'Suggested domain: {domain}',
   'cli.errorPrefix': 'Error: {error}',
   'misc.unknownSize': 'unknown size',
+  'section.title': 'Orphan projects',
 };
 
 const STRINGS: Record<Lang, Dict> = { pt, en };

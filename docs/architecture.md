@@ -79,7 +79,7 @@ and `showToast`.
 
 ## Internationalization
 
-Dictionary in `src/core/i18n.ts` (75 keys per language). The language is
+Dictionary in `src/core/i18n.ts` (76 keys per language). The language is
 persisted in `brightlocalwp-settings.json` in Local's data directory
 (`get/set-language`); the initial default comes from the app locale, falling
 back to PT. The CLI accepts `--lang pt|en`.
