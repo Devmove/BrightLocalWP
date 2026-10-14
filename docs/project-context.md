@@ -28,6 +28,8 @@ O projeto possui:
   **Restaurar** ao lado de cada órfão candidato;
 - comunicação entre renderer e processo principal usando `ipcAsync` e
   `addIpcAsyncListener`;
++- internacionalização em `src/core/i18n.ts` (PT/EN, 75 chaves), com o idioma
++  persistido em `brightlocalwp-settings.json` e seletor no topo do painel;
 - build TypeScript;
 - lint com ESLint;
 - empacotamento em `build/BrightLocalWP-0.1.0.tar.gz`;

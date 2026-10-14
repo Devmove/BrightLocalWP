@@ -5,6 +5,7 @@ import { createReadStream } from 'node:fs';
 import { mkdir, readdir, rename, stat } from 'node:fs/promises';
 import { basename, join } from 'node:path';
 import { createGunzip } from 'node:zlib';
+import { Lang, translate } from './i18n';
 
 export type WebServerKind = 'nginx' | 'apache' | 'unknown';
 
@@ -158,13 +159,13 @@ export function cloneServicesWithFreePorts(
 }
 
 /** Gera um ID de site no formato usado pelo Local, sem colidir com os existentes. */
-export function generateSiteId(existingIds: readonly string[] = []): string {
+export function generateSiteId(existingIds: readonly string[] = [], lang: Lang = 'pt'): string {
   const taken = new Set(existingIds);
   for (let attempt = 0; attempt < 100; attempt += 1) {
     const id = randomBytes(7).toString('base64url').slice(0, 9);
     if (!taken.has(id)) return id;
   }
-  throw new Error('Não foi possível gerar um ID único para o site.');
+  throw new Error(translate(lang, 'err.uniqueId'));
 }
 
 /**
@@ -327,8 +328,8 @@ export async function getDirectorySize(root: string): Promise<DirectorySize> {
 }
 
 /** Formata bytes para exibição (ex.: 1,4 GB). */
-export function formatBytes(bytes: number): string {
-  if (!Number.isFinite(bytes) || bytes < 0) return 'tamanho desconhecido';
+export function formatBytes(bytes: number, lang: Lang = 'pt'): string {
+  if (!Number.isFinite(bytes) || bytes < 0) return translate(lang, 'misc.unknownSize');
   const units = ['B', 'KB', 'MB', 'GB', 'TB'];
   let value = bytes;
   let unit = 0;

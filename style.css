@@ -18,6 +18,7 @@
   --blw-danger-bg: #fdf1f0;
   --blw-danger-border: #b42318;
   --blw-danger-text: #b42318;
+  --blw-danger-contrast: #ffffff;
   --blw-ok: #16803c;
   --blw-warn: #b54708;
   --blw-cancel-text: #4f5b66;
@@ -49,6 +50,7 @@ html.Theme__Dark .bright-local-wp-settings {
   --blw-danger-bg: #331d1b;
   --blw-danger-border: #f08080;
   --blw-danger-text: #f08080;
+  --blw-danger-contrast: #2b0f0e;
   --blw-ok: #5fd08a;
   --blw-warn: #eda45c;
   --blw-cancel-text: #c3c9cf;
@@ -61,6 +63,10 @@ html.Theme__Dark .bright-local-wp-settings {
 .bright-local-wp-settings code { color: var(--blw-text); }
 
 .bright-local-wp__description { color: var(--blw-muted); font-size: 13px; line-height: 1.5; }
+.bright-local-wp__topbar { display: flex; justify-content: flex-end; margin-bottom: 8px; }
+.bright-local-wp__language { display: flex; align-items: center; gap: 8px; color: var(--blw-muted); font-size: 12px; font-weight: 600; }
+.bright-local-wp__language select { padding: 4px 8px; border: 1px solid var(--blw-cancel-border); border-radius: 4px; background: var(--blw-surface); color: var(--blw-text); font-size: 12px; cursor: pointer; }
+.bright-local-wp__language select:disabled { opacity: .6; cursor: wait; }
 
 .bright-local-wp__button { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border: 0; border-radius: 4px; background: var(--blw-primary); color: var(--blw-primary-contrast); cursor: pointer; font-weight: 600; }
 .bright-local-wp__button:disabled { opacity: .6; cursor: wait; }
@@ -81,6 +87,8 @@ html.Theme__Dark .bright-local-wp-settings {
 .bright-local-wp__restore-button:disabled { opacity: .6; cursor: wait; }
 .bright-local-wp__delete-button { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border: 1px solid var(--blw-danger-border); border-radius: 4px; background: var(--blw-surface); color: var(--blw-danger-text); cursor: pointer; font-weight: 600; }
 .bright-local-wp__delete-button:disabled { opacity: .6; cursor: wait; }
+.bright-local-wp__delete-button--solid { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border: 1px solid var(--blw-danger-border); border-radius: 4px; background: var(--blw-danger-border); color: var(--blw-danger-contrast); cursor: pointer; font-weight: 600; }
+.bright-local-wp__delete-button--solid:disabled { opacity: .6; cursor: wait; }
 .bright-local-wp__cancel-button { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border: 1px solid var(--blw-cancel-border); border-radius: 4px; background: var(--blw-surface); color: var(--blw-cancel-text); cursor: pointer; font-weight: 600; }
 .bright-local-wp__cancel-button:disabled { opacity: .6; cursor: wait; }
 

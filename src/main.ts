@@ -1,5 +1,5 @@
 import { addIpcAsyncListener, getServiceContainer, sendIPCEvent } from '@getflywheel/local/main';
-import { copyFile, readdir } from 'node:fs/promises';
+import { copyFile, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { dirname, join, normalize, resolve } from 'node:path';
 import {
   analyzeOrphan,
@@ -14,7 +14,47 @@ import {
   pickSqlDump,
   suggestRestore,
 } from './core/site-restore';
+import { Lang, resolveLanguage, translate } from './core/i18n';
 import { expandHomePath, findOrphanCandidates, scanProjects } from './core/project-scanner';
+
+const SETTINGS_FILE = 'brightlocalwp-settings.json';
+
+function defaultLanguage(context: any): Lang {
+  try {
+    const locale = context?.electron?.app?.getLocale?.();
+    if (typeof locale === 'string' && locale.length > 0) {
+      return resolveLanguage(locale, 'en');
+    }
+  } catch {
+    // Sem acesso ao locale: usa o padrão abaixo.
+  }
+  return 'pt';
+}
+
+async function loadLanguage(context: any): Promise<Lang> {
+  const userDataPath = resolveUserDataPath(context);
+  if (!userDataPath) return defaultLanguage(context);
+  try {
+    const raw = await readFile(join(userDataPath, SETTINGS_FILE), 'utf8');
+    const parsed: unknown = JSON.parse(raw);
+    if (typeof parsed === 'object' && parsed !== null) {
+      return resolveLanguage((parsed as Record<string, unknown>).language, defaultLanguage(context));
+    }
+  } catch {
+    // Arquivo ausente ou inválido: usa o padrão.
+  }
+  return defaultLanguage(context);
+}
+
+async function saveLanguage(context: any, language: Lang): Promise<void> {
+  const userDataPath = resolveUserDataPath(context);
+  if (!userDataPath) throw new Error(translate(language, 'warn.noUserData'));
+  await writeFile(join(userDataPath, SETTINGS_FILE), JSON.stringify({ language }, null, 2));
+}
+
+function errMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
 
 interface RestoreRequest {
   path: string;
@@ -85,15 +125,30 @@ export default function main(context?: any): void {
     return { roots, projects, orphans: findOrphanCandidates(projects) };
   });
 
+  addIpcAsyncListener('brightlocalwp:get-language', async () => ({
+    language: await loadLanguage(context),
+  }));
+
+  addIpcAsyncListener('brightlocalwp:set-language', async (request: { language?: unknown }) => {
+    const current = await loadLanguage(context);
+    const language = resolveLanguage(request?.language, 'invalid' as Lang);
+    if (language !== 'pt' && language !== 'en') {
+      throw new Error(translate(current, 'err.invalidLanguage'));
+    }
+    await saveLanguage(context, language);
+    return { language };
+  });
+
   addIpcAsyncListener('brightlocalwp:restore-preview', async (request: RestoreRequest) => {
-    const preview = await buildRestorePlan(siteData, request);
+    const preview = await buildRestorePlan(siteData, request, await loadLanguage(context));
     const { siteJSON, ...rest } = preview;
     void siteJSON;
     return rest;
   });
 
   addIpcAsyncListener('brightlocalwp:restore', async (request: RestoreRequest) => {
-    const plan = await buildRestorePlan(siteData, request);
+    const lang = await loadLanguage(context);
+    const plan = await buildRestorePlan(siteData, request, lang);
 
     let backupPath: string | null = null;
     let backupWarning: string | null = null;
@@ -104,10 +159,10 @@ export default function main(context?: any): void {
         backupPath = join(userDataPath, `sites.json.brightlocalwp-${stamp}.bak`);
         await copyFile(join(userDataPath, 'sites.json'), backupPath);
       } catch (error) {
-        backupWarning = `Não foi possível criar backup de sites.json: ${error instanceof Error ? error.message : String(error)}`;
+        backupWarning = translate(lang, 'warn.backupFailed', { error: errMessage(error) });
       }
     } else {
-      backupWarning = 'Caminho de dados do Local indisponível; backup automático ignorado.';
+      backupWarning = translate(lang, 'warn.noUserData');
     }
 
     siteData.addSite(plan.siteJSON.id, plan.siteJSON);
@@ -123,7 +178,7 @@ export default function main(context?: any): void {
       );
     } catch (error) {
       warnings.push(
-        `Site registrado, mas não foi possível adicioná-lo ao grupo padrão: ${error instanceof Error ? error.message : String(error)}`,
+        translate(lang, 'warn.groupFailed', { error: errMessage(error) }),
       );
     }
     if (typeof siteData.emitSitesUpdate === 'function') {
@@ -137,17 +192,15 @@ export default function main(context?: any): void {
     let importedDump: string | null = null;
     let datadirBackup: string | null = null;
     try {
-      const provision = await provisionRestoredSite(serviceContainer, siteData, plan.siteJSON.id);
+      const provision = await provisionRestoredSite(serviceContainer, siteData, plan.siteJSON.id, lang);
       running = true;
       datadirBackup = provision.datadirBackup;
       if (provision.datadirRepaired) {
-        warnings.push(
-          'Um datadir parcial de tentativa anterior foi preservado em backup e recriado do zero.',
-        );
+        warnings.push(translate(lang, 'warn.datadirRepaired'));
       }
     } catch (error) {
       warnings.push(
-        `Falha ao provisionar/executar o site: ${error instanceof Error ? error.message : String(error)}`,
+        translate(lang, 'warn.provisionFailed', { error: errMessage(error) }),
       );
     }
 
@@ -155,15 +208,15 @@ export default function main(context?: any): void {
       const dumpPath = pickSqlDump(plan.evidence);
       if (dumpPath) {
         try {
-          await importRestoredDatabase(serviceContainer, siteData, plan.siteJSON.id, dumpPath);
+          await importRestoredDatabase(serviceContainer, siteData, plan.siteJSON.id, dumpPath, lang);
           importedDump = dumpPath;
         } catch (error) {
           warnings.push(
-            `Banco criado, mas a importação do dump falhou: ${error instanceof Error ? error.message : String(error)}`,
+            translate(lang, 'warn.importFailed', { error: errMessage(error) }),
           );
         }
       } else {
-        warnings.push('Nenhum dump SQL encontrado em app/sql; o banco foi criado vazio.');
+        warnings.push(translate(lang, 'warn.noDump'));
       }
     }
 
@@ -173,7 +226,7 @@ export default function main(context?: any): void {
     }
     if (oldDomain && oldDomain !== plan.siteJSON.domain.toLowerCase()) {
       warnings.push(
-        `O banco referencia o domínio antigo ${oldDomain}; o site agora usa ${plan.siteJSON.domain}. Ajuste os endereços no WordPress se necessário.`,
+        translate(lang, 'warn.oldDomain', { old: oldDomain, domain: plan.siteJSON.domain }),
       );
     }
 
@@ -211,12 +264,12 @@ export default function main(context?: any): void {
     if (running) {
       notify(
         'success',
-        `Projeto "${plan.siteJSON.name}" restaurado e em execução como ${plan.siteJSON.domain}.`,
+        translate(lang, 'toast.restoreOk', { name: plan.siteJSON.name, domain: plan.siteJSON.domain }),
       );
     } else {
       notify(
         'error',
-        `Projeto "${plan.siteJSON.name}" registrado, mas não entrou em execução. Verifique o painel do BrightLocalWP.`,
+        translate(lang, 'toast.restoreFail', { name: plan.siteJSON.name }),
       );
     }
 
@@ -239,28 +292,40 @@ export default function main(context?: any): void {
   });
 
   addIpcAsyncListener('brightlocalwp:delete-preview', async (request: RestoreRequest) => {
-    const { candidatePath } = await assertOrphanCandidate(siteData, request?.path);
+    const lang = await loadLanguage(context);
+    const { candidatePath } = await assertOrphanCandidate(siteData, request?.path, lang);
     const size = await getDirectorySize(candidatePath);
-    return { path: candidatePath, size, sizeText: formatBytes(size.bytes) };
+    return { path: candidatePath, size, sizeText: formatBytes(size.bytes, lang) };
   });
 
   addIpcAsyncListener('brightlocalwp:delete-orphan', async (request: RestoreRequest) => {
-    const { candidatePath } = await assertOrphanCandidate(siteData, request?.path);
+    const lang = await loadLanguage(context);
+    const { candidatePath } = await assertOrphanCandidate(siteData, request?.path, lang);
     const shell = context?.electron?.shell;
     if (!shell || typeof shell.trashItem !== 'function') {
-      throw new Error('Recurso de lixeira indisponível neste ambiente.');
+      throw new Error(translate(lang, 'err.trashUnavailable'));
     }
     try {
       await shell.trashItem(candidatePath);
     } catch (error) {
-      notify(
-        'error',
-        `Não foi possível mover a pasta para a lixeira: ${error instanceof Error ? error.message : String(error)}`,
-      );
+      notify('error', translate(lang, 'toast.trashFail', { error: errMessage(error) }));
       throw error;
     }
-    notify('success', `Pasta movida para a lixeira: ${candidatePath}`);
+    notify('success', translate(lang, 'toast.trashOk', { path: candidatePath }));
     return { path: candidatePath, trashed: true };
+  });
+
+  addIpcAsyncListener('brightlocalwp:delete-permanent', async (request: RestoreRequest) => {
+    const lang = await loadLanguage(context);
+    const { candidatePath } = await assertOrphanCandidate(siteData, request?.path, lang);
+    try {
+      await rm(candidatePath, { recursive: true, force: true });
+    } catch (error) {
+      notify('error', translate(lang, 'toast.permanentFail', { error: errMessage(error) }));
+      throw error;
+    }
+    notify('success', translate(lang, 'toast.permanentOk', { path: candidatePath }));
+    return { path: candidatePath, deleted: true };
   });
 }
 
@@ -272,9 +337,10 @@ export default function main(context?: any): void {
 async function assertOrphanCandidate(
   siteData: any,
   rawPath: unknown,
+  lang: Lang,
 ): Promise<{ candidatePath: string; roots: string[] }> {
   if (typeof rawPath !== 'string' || rawPath.length === 0) {
-    throw new Error('Caminho do projeto inválido.');
+    throw new Error(translate(lang, 'err.invalidPath'));
   }
   const candidatePath = resolve(expandHomePath(rawPath));
   const registered = await getRegisteredSites(siteData);
@@ -287,13 +353,13 @@ async function assertOrphanCandidate(
     );
   });
   if (!insideAllowedRoot) {
-    throw new Error('O projeto está fora dos diretórios de sites do Local.');
+    throw new Error(translate(lang, 'err.outsideRoot'));
   }
   const alreadyRegistered = registeredProjects.some(
     (project) => normalize(resolve(project.path)) === normalize(candidatePath),
   );
   if (alreadyRegistered) {
-    throw new Error('Este projeto está registrado no Local.');
+    throw new Error(translate(lang, 'err.registeredDelete'));
   }
   let children: string[];
   try {
@@ -301,10 +367,10 @@ async function assertOrphanCandidate(
       (entry) => entry.name,
     );
   } catch {
-    throw new Error('Não foi possível ler o diretório do projeto.');
+    throw new Error(translate(lang, 'err.unreadable'));
   }
   if (!children.includes('app') || !children.includes('conf')) {
-    throw new Error('O diretório não possui a estrutura mínima de um site Local (app/conf).');
+    throw new Error(translate(lang, 'err.noStructure'));
   }
   return { candidatePath, roots };
 }
@@ -319,11 +385,12 @@ async function provisionRestoredSite(
   serviceContainer: any,
   siteData: any,
   siteId: string,
+  lang: Lang,
 ): Promise<{ datadirRepaired: boolean; datadirBackup: string | null }> {
   const site = siteData.getSite(siteId);
-  if (!site) throw new Error('Site não encontrado após o registro.');
+  if (!site) throw new Error(translate(lang, 'err.noSiteAfterRegister'));
   const lightningServices = serviceContainer.cradle.lightningServices;
-  if (!lightningServices) throw new Error('Serviços do Local indisponíveis.');
+  if (!lightningServices) throw new Error(translate(lang, 'err.noLightning'));
 
   await serviceContainer.cradle.configTemplates.compileServiceConfigs(site);
 
@@ -359,13 +426,14 @@ async function importRestoredDatabase(
   siteData: any,
   siteId: string,
   dumpPath: string,
+  lang: Lang,
 ): Promise<void> {
   const site = siteData.getSite(siteId);
-  if (!site) throw new Error('Site não encontrado para importação do banco.');
+  if (!site) throw new Error(translate(lang, 'err.importNoSite'));
   const lightningServices = serviceContainer.cradle.lightningServices;
   const siteServices = lightningServices.getSiteServices(site);
   const dbService = siteServices.find((service: any) => service?.bin?.mysql);
-  if (!dbService) throw new Error('Serviço de banco de dados não encontrado.');
+  if (!dbService) throw new Error(translate(lang, 'err.noDbService'));
 
   await importSqlDump({
     mysqlBin: dbService.bin.mysql,
@@ -376,12 +444,12 @@ async function importRestoredDatabase(
   });
 }
 
-async function buildRestorePlan(siteData: any, request: RestoreRequest): Promise<any> {
-  const { candidatePath } = await assertOrphanCandidate(siteData, request?.path);
+async function buildRestorePlan(siteData: any, request: RestoreRequest, lang: Lang): Promise<any> {
+  const { candidatePath } = await assertOrphanCandidate(siteData, request?.path, lang);
 
   const registered = await getRegisteredSites(siteData);
   if (registered.length === 0) {
-    throw new Error('Nenhum site registrado para usar como modelo de configuração.');
+    throw new Error(translate(lang, 'err.noTemplate'));
   }
 
   const evidence = await analyzeOrphan(candidatePath);
@@ -406,12 +474,12 @@ async function buildRestorePlan(siteData: any, request: RestoreRequest): Promise
       ? request.domain.trim()
       : suggestion.domain;
   if (existingDomains.map((item) => item.toLowerCase()).includes(domain.toLowerCase())) {
-    throw new Error(`O domínio ${domain} já está em uso por outro site.`);
+    throw new Error(translate(lang, 'err.domainInUse', { domain }));
   }
 
   const usedPorts = collectUsedPorts(registered);
   const services = cloneServicesWithFreePorts(template.services ?? {}, usedPorts);
-  const id = generateSiteId(registered.map((site) => site.id));
+  const id = generateSiteId(registered.map((site) => site.id), lang);
 
   const siteJSON = {
     id,

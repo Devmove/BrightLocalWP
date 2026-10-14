@@ -69,6 +69,14 @@ Reinicie o Local após a atualização para recarregar o add-on.
 O add-on segue a estrutura de entradas `main` e `renderer` esperada pelo Local e usa
 a API do add-on para obter os sites registrados e comunicar-se com o scanner.
 
+## Idioma
+
+A interface está disponível em português e inglês. O seletor de idioma fica no
+topo do painel **BrightLocalWP** nas preferências do Local. A escolha é salva
+em `brightlocalwp-settings.json` no diretório de dados do Local e vale também
+para mensagens do processo principal (avisos e toasts). Na CLI, use
+`--lang pt|en`.
+
 ## Interface no Local
 
 Depois de extrair o pacote no diretório de add-ons do Local e reiniciar o aplicativo,
@@ -109,7 +117,9 @@ Ao lado de cada órfão candidato há também um botão **Excluir**. O fluxo é:
 3. atualiza a lista de órfãos na interface.
 
 A exclusão só é permitida para diretórios dentro das raízes de sites, com
-estrutura mínima e sem registro no Local.
+estrutura mínima e sem registro no Local. Há duas modalidades: mover para a
+lixeira (reversível) e remoção permanente (irreversível, com confirmação em
+duas etapas).
 
 Nenhum arquivo do projeto é apagado ou movido. Pela CLI, `node dist/cli.js
 analyze <diretório>` mostra a mesma análise em modo somente leitura.
