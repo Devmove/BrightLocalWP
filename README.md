@@ -1,133 +1,85 @@
 # BrightLocalWP
 
-Add-on para o Local com ferramentas de manutenção e limpeza de ambientes WordPress.
+Add-on for [Local](https://localwp.com) (Local by WP Engine) with maintenance
+and cleanup tools for local WordPress environments.
 
-> **Importante:** alterações Git não são commitadas nem enviadas automaticamente.
-> Commits, pushes e operações que alteram o histórico exigem autorização explícita.
+## Features
 
-Consulte [`docs/project-context.md`](docs/project-context.md) para o contexto
-arquitetural e as regras de desenvolvimento.
+- **Find orphan projects**: locate project folders that exist on disk but are
+  not listed in the Local interface;
+- **Restore projects**: re-register an orphan project in Local, with its
+  database provisioned and imported, and start the site;
+- **Safe deletion**: move the folder to the system trash or delete it
+  permanently, always with confirmation;
+- **Filtering, search and sorting** in the project list;
+- **Portuguese and English**, with a selector in the panel itself.
 
-## Objetivos
+## Requirements
 
-- criar e gerenciar backups locais de ambientes;
-- localizar projetos que existem no disco, mas não aparecem no Local;
-- identificar projetos órfãos com segurança;
-- restaurar projetos detectados no diretório do Local;
-- oferecer limpeza explícita, auditável e sempre precedida por confirmação.
+- The Local app installed (macOS, Windows or Linux).
 
-## Estado atual
+## Installation
 
-O primeiro incremento contém o núcleo de descoberta (`src/core/project-scanner.ts`).
-Ele apenas lê diretórios e compara candidatos com uma lista de projetos registrados.
-Não há exclusão, movimentação ou alteração de arquivos.
+1. Extract the `BrightLocalWP-<version>.tar.gz` package into Local's add-ons directory:
+   - Linux: `~/.config/Local/addons/`
+   - macOS: `~/Library/Application Support/Local/addons/`
+   - Windows: `%APPDATA%\Local\addons\`
+2. Restart Local.
+3. Enable **BrightLocalWP** under *Settings > Add-ons*.
 
-## Desenvolvimento
+## Usage
 
-```bash
-npm install
-npm run check
-npm run build
-```
+Open Local's preferences and select **BrightLocalWP**.
 
-## Uso da primeira versão
+### Scanning projects
 
-Após o build, a ferramenta de diagnóstico pode ser executada diretamente:
+Click **Scan projects** (afterwards, **Scan again**). The add-on analyzes the
+folders where registered projects are stored and lists each directory as
+**Registered**, **Orphan candidate** or **Ignored**. Use the status filters,
+name search and sorting to navigate the list.
+
+### Restoring an orphan project
+
+Next to each orphan candidate, click **Restore** and confirm in the box that
+appears below the item. The add-on suggests a name and domain, registers the
+project, provisions the database (importing the original dump when available),
+starts the site and navigates to it. Nothing is deleted or moved.
+
+### Deleting an orphan project
+
+Next to each orphan candidate, click **Delete** and confirm. You can **move to
+trash** (reversible) or **delete permanently** (irreversible, with two-step
+confirmation). The folder size is shown before confirmation.
+
+### Language
+
+The selector at the top of the panel switches between Portuguese and English.
+The choice is saved and applies to the whole add-on.
+
+### Command line (diagnostics)
 
 ```bash
 node dist/cli.js scan "$HOME/Local Sites"
-node dist/cli.js scan "$HOME/Local Sites" --registered projetos.json --json
+node dist/cli.js scan "$HOME/Local Sites" --registered projects.json --json
+node dist/cli.js analyze "$HOME/Local Sites/my-site"
 ```
 
-Para gerar o pacote instalável:
+The CLI is read-only: it analyzes and reports without changing anything. Use
+`--lang en` for English messages (default is Portuguese).
 
-```bash
-npm run package
-```
+## Safety
 
-O arquivo será criado em `build/BrightLocalWP-0.1.0.tar.gz`. Ele contém os
-arquivos compilados e pode ser extraído no diretório de add-ons do Local.
+- scanning is read-only;
+- restore and delete require explicit confirmation in the panel;
+- deletion defaults to trash; permanent removal warns that it is irreversible;
+- automatic `sites.json` backups are created before each restore.
 
-## Atualização rápida durante o desenvolvimento
+## Developer documentation
 
-O comando abaixo compila e atualiza diretamente o add-on instalado localmente:
+- [`docs/project-context.md`](docs/project-context.md): overview and current state;
+- [`docs/architecture.md`](docs/architecture.md): modules, flows and Local integration;
+- [`docs/development.md`](docs/development.md): environment, commands and checks.
 
-```bash
-npm run dev:install
-```
+## Translations
 
-Por padrão, o destino é configurado em `package.json` como
-`~/.config/Local/addons/bright-local-wp`. Para usar outro diretório sem alterar o
-arquivo:
-
-```bash
-BRIGHTLOCALWP_ADDON_DIR="/outro/diretorio/addons/bright-local-wp" npm run dev:install
-```
-
-Reinicie o Local após a atualização para recarregar o add-on.
-
-O add-on segue a estrutura de entradas `main` e `renderer` esperada pelo Local e usa
-a API do add-on para obter os sites registrados e comunicar-se com o scanner.
-
-## Idioma
-
-A interface está disponível em português e inglês. O seletor de idioma fica no
-topo do painel **BrightLocalWP** nas preferências do Local. A escolha é salva
-em `brightlocalwp-settings.json` no diretório de dados do Local e vale também
-para mensagens do processo principal (avisos e toasts). Na CLI, use
-`--lang pt|en`.
-
-## Interface no Local
-
-Depois de extrair o pacote no diretório de add-ons do Local e reiniciar o aplicativo,
-ative **BrightLocalWP** em *Settings > Add-ons*. Depois, abra a tela de
-preferências do Local e selecione **BrightLocalWP**. O botão **Verificar projetos**
-analisa as pastas onde os projetos registrados estão armazenados e lista projetos
-registrados, candidatos órfãos e diretórios ignorados. A ferramenta é global e não
-fica vinculada a um site específico.
-
-## Restauração de projetos órfãos
-
-Ao lado de cada órfão candidato há um botão **Restaurar**. O fluxo é:
-
-1. o add-on analisa o diretório (servidor web, `wp-config.php`, dumps SQL);
-2. sugere nome e domínio livre e escolhe um site registrado com o mesmo
-   servidor web como modelo de configuração;
-3. exibe tudo para confirmação explícita em caixa inline no próprio painel;
-4. cria backup de `sites.json`, registra o projeto com portas livres e
-   atualiza a lista de sites;
-5. provisiona o runtime como o Local faz ao criar um site: compila os configs,
-   saneia datadir parcial (movido para backup lateral, nunca apagado),
-   inicializa o datadir do MySQL, inicia os serviços, define a senha do banco,
-   cria o banco `local` e importa o dump SQL (`local.sql` ou o primeiro `.sql`);
-6. detecta o domínio antigo gravado no banco e avisa quando ele difere do
-   novo domínio, para ajuste posterior dos endereços no WordPress;
-7. navega até o site restaurado (como na criação normal), aguarda a
-   remontagem das visões e então emite a atualização final da interface
-   (`refreshSites` + `siteAdded`).
-
-## Exclusão de projetos órfãos
-
-Ao lado de cada órfão candidato há também um botão **Excluir**. O fluxo é:
-
-1. mostra o tamanho da pasta para confirmação explícita em caixa de
-   confirmação dentro do próprio painel (sem depender de diálogos externos);
-2. move a pasta para a lixeira do sistema (reversível, nada é apagado
-   definitivamente);
-3. atualiza a lista de órfãos na interface.
-
-A exclusão só é permitida para diretórios dentro das raízes de sites, com
-estrutura mínima e sem registro no Local. Há duas modalidades: mover para a
-lixeira (reversível) e remoção permanente (irreversível, com confirmação em
-duas etapas).
-
-Nenhum arquivo do projeto é apagado ou movido. Pela CLI, `node dist/cli.js
-analyze <diretório>` mostra a mesma análise em modo somente leitura.
-
-## Princípios de segurança
-
-1. detectar antes de agir;
-2. mostrar caminho absoluto e tamanho antes de qualquer operação;
-3. nunca apagar automaticamente;
-4. validar que todo caminho está dentro da raiz configurada;
-5. registrar operações de backup, restauração e limpeza.
+- [Português (Brasil)](docs/translations/README.pt-BR.md)
