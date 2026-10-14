@@ -1,7 +1,9 @@
 # BrightLocalWP
 
 Add-on for [Local](https://localwp.com) (Local by WP Engine) with maintenance
-and cleanup tools for local WordPress environments.
+and cleanup tools for local WordPress environments
+
+![BrightLocalWP preferences screen](screenshots/config-screen.png)
 
 ## Features
 

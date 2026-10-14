@@ -3,6 +3,8 @@
 Add-on para o [Local](https://localwp.com) (Local by WP Engine) com ferramentas de
 manutenção e limpeza de ambientes WordPress locais.
 
+![Tela de preferências do BrightLocalWP](../screenshots/config-screen.png)
+
 ## Recursos
 
 - **Localizar projetos órfãos**: encontra pastas de projetos que existem no disco,
