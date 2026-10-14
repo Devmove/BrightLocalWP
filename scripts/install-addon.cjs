@@ -36,6 +36,7 @@ async function main() {
   await Promise.all([
     copy('dist', destination),
     copy('package.json', destination),
+    copy('LICENSE', destination),
     copy('README.md', destination),
     copy('style.css', destination),
     copy('icon.svg', destination),

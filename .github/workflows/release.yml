@@ -1,0 +1,53 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run check
+      - run: npm run package
+      - name: Verify tag matches package version
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          PKG="$(node -p "require('./package.json').version")"
+          if [ "$TAG" != "$PKG" ]; then
+            echo "Tag v$TAG does not match package.json version $PKG" >&2
+            exit 1
+          fi
+          ls -la "build/BrightLocalWP-$PKG.tar.gz"
+      - name: Build release notes
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          NOTES="release-notes.md"
+          if awk "/^## \\[$TAG\\]/{flag=1;next}/^## \\[/{flag=0}flag" CHANGELOG.md > "$NOTES" && [ -s "$NOTES" ]; then
+            echo "Using CHANGELOG.md section for $TAG"
+          else
+            PREV="$(git describe --tags --abbrev=0 HEAD~1 2>/dev/null || echo '')"
+            if [ -n "$PREV" ]; then
+              { echo "## Changes since $PREV"; echo; git log "$PREV"..HEAD --pretty='- %s'; } > "$NOTES"
+            else
+              { echo '## Changes'; echo; git log --pretty='- %s'; } > "$NOTES"
+            fi
+          fi
+          cat "$NOTES"
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: build/BrightLocalWP-*.tar.gz
+          body_path: release-notes.md

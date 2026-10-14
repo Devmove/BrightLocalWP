@@ -74,6 +74,13 @@ The CLI is read-only: it analyzes and reports without changing anything. Use
 - deletion defaults to trash; permanent removal warns that it is irreversible;
 - automatic `sites.json` backups are created before each restore.
 
+## License
+
+BrightLocalWP is free software: you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the Free
+Software Foundation, either version 3 of the License, or (at your option) any
+later version. See [`LICENSE`](LICENSE) for details.
+
 ## Developer documentation
 
 - [`docs/project-context.md`](docs/project-context.md): overview and current state;

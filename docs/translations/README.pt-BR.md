@@ -76,6 +76,13 @@ para mensagens em inglês (o padrão é português).
   irreversível;
 - backups automáticos de `sites.json` são criados antes de cada restauração.
 
+## Licença
+
+BrightLocalWP é software livre: você pode redistribuí-lo e/ou modificá-lo sob
+os termos da GNU General Public License conforme publicada pela Free Software
+Foundation, seja a versão 3 da licença ou (a seu critério) qualquer versão
+posterior. Veja [`LICENSE`](../../LICENSE) para detalhes.
+
 ## Documentação para desenvolvimento (em inglês)
 
 - [project-context.md](../project-context.md): visão geral e estado atual;

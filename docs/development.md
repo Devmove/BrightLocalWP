@@ -48,6 +48,26 @@ Restart Local after updating to reload the add-on.
 npm run lint && npm run check && npm run package && git diff --check
 ```
 
+## Releases (CI)
+
+Releases are built by GitHub Actions and published as GitHub Releases.
+
+1. Add an entry under a new version section in `CHANGELOG.md` (English).
+2. Bump `version` in `package.json`.
+3. Commit and push to `origin`.
+4. Create and push a matching tag:
+   ```bash
+   git tag v0.2.0
+   git push origin v0.2.0
+   ```
+5. The `release` workflow (`.github/workflows/release.yml`) verifies the tag
+   matches `package.json`, runs lint/check/package and publishes
+   `build/BrightLocalWP-<version>.tar.gz` with the `CHANGELOG.md` notes
+   (falling back to the commit list).
+
+The `ci` workflow (`.github/workflows/ci.yml`) runs lint, type checks and
+build on every push and pull request.
+
 ## Tests
 
 No test framework is configured. Validation is done with:
