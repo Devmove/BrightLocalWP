@@ -1,31 +1,38 @@
 ---
 name: git-rules
-description: Regras obrigatórias para operações Git no BrightLocalWP.
+description: Mandatory rules for Git operations in BrightLocalWP.
 ---
 
-# Regras de Git do BrightLocalWP
+# BrightLocalWP Git Rules
 
-Estas regras se aplicam a todo trabalho neste projeto.
+These rules apply to all work in this project.
 
-## Regra principal
+## Standing permissions
 
-Não execute `git commit` nem `git push` sem permissão explícita do usuário.
+- **Commit automatically**: every implemented and validated change must be
+  committed without asking first. Commit messages must be in English.
+- **Changelogs in English**: `CHANGELOG.md` entries, release notes and
+  changelog summaries shown to the user must be in English.
+- **Push only on request**: never push without the user explicitly asking
+  for a push (naming the destination or approving it).
 
-Também não execute sem autorização explícita:
+## Still requires explicit authorization
 
-- `git reset` ou `git reset --hard`;
-- `git checkout` ou `git restore` para descartar alterações;
+- `git push` (unless just requested);
+- `git reset` or `git reset --hard`;
+- `git checkout` or `git restore` to discard changes;
 - `git clean`;
 - `git branch -D`;
-- merge, rebase, cherry-pick ou alteração de histórico;
-- criação ou remoção de worktrees;
-- qualquer comando equivalente que possa descartar trabalho ou alterar o
-  histórico do repositório.
+- merge, rebase, cherry-pick or history rewriting;
+- worktree creation or removal;
+- tag creation or deletion;
+- any equivalent command that could discard work or alter the
+  repository history.
 
-## Operações permitidas sem confirmação
+## Operations always allowed
 
-Podem ser executadas para inspeção ou validação, desde que não alterem o
-histórico nem descartem arquivos:
+These may be run for inspection or validation, as long as they do not alter
+history or discard files:
 
 - `git status`;
 - `git log`;
@@ -34,17 +41,13 @@ histórico nem descartem arquivos:
 - `git branch --list`;
 - `git ls-files`.
 
-Adicionar arquivos ao staging (`git add`) também exige autorização se fizer
-parte da preparação de um commit. Sem autorização, apenas inspecione as
-alterações e informe o usuário.
+Staging files (`git add`) is allowed as part of preparing the automatic
+commit.
 
-## Quando o usuário pedir uma alteração
+## Workflow for each change
 
-Implemente e valide o código normalmente. Ao final:
-
-1. mostre os arquivos alterados e as verificações executadas;
-2. informe que as alterações ainda não foram commitadas;
-3. aguarde autorização específica antes de criar um commit ou fazer push.
-
-Uma autorização para implementar uma funcionalidade não implica autorização
-para commit ou push.
+1. implement and validate the code (`npm run lint`, `npm run check`,
+   `npm run package`, plus relevant smoke tests);
+2. stage and commit with an English message;
+3. show the commit, the changed files and the checks performed;
+4. wait for an explicit push request before pushing.
