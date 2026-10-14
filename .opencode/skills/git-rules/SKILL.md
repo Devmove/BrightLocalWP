@@ -7,18 +7,13 @@ description: Mandatory rules for Git operations in BrightLocalWP.
 
 These rules apply to all work in this project.
 
-## Standing permissions
+## Main rule
 
-- **Commit automatically**: every implemented and validated change must be
-  committed without asking first. Commit messages must be in English.
-- **Changelogs in English**: `CHANGELOG.md` entries, release notes and
-  changelog summaries shown to the user must be in English.
-- **Push only on request**: never push without the user explicitly asking
-  for a push (naming the destination or approving it).
+Do not run `git commit` or `git push` without the user's explicit permission.
+Commits are never automatic: every commit requires authorization, even for
+small changes.
 
-## Still requires explicit authorization
-
-- `git push` (unless just requested);
+Also do not run without explicit authorization:
 - `git reset` or `git reset --hard`;
 - `git checkout` or `git restore` to discard changes;
 - `git clean`;
@@ -28,6 +23,12 @@ These rules apply to all work in this project.
 - tag creation or deletion;
 - any equivalent command that could discard work or alter the
   repository history.
+
+## Language conventions
+
+- Commit messages must be in English.
+- `CHANGELOG.md` entries, release notes and changelog summaries shown to
+  the user must be in English.
 
 ## Operations always allowed
 
@@ -41,13 +42,17 @@ history or discard files:
 - `git branch --list`;
 - `git ls-files`.
 
-Staging files (`git add`) is allowed as part of preparing the automatic
-commit.
+Staging files (`git add`) also requires authorization when it is part of
+preparing a commit. Without authorization, only inspect the changes and
+inform the user.
 
 ## Workflow for each change
 
 1. implement and validate the code (`npm run lint`, `npm run check`,
    `npm run package`, plus relevant smoke tests);
-2. stage and commit with an English message;
-3. show the commit, the changed files and the checks performed;
-4. wait for an explicit push request before pushing.
+2. show the changed files and the checks performed;
+3. inform that the changes have not been committed yet;
+4. wait for specific authorization before creating a commit or pushing.
+
+An authorization to implement a feature does not imply authorization
+to commit or push.
