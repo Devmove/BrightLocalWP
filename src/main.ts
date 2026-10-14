@@ -177,9 +177,30 @@ export default function main(context?: any): void {
       );
     }
 
+    // Finaliza a interface: primeiro navega até o site restaurado (como na
+    // criação normal), aguarda a remontagem das visões e só então emite as
+    // atualizações, para que a lista lateral seja remontada com dados frescos.
+    if (running) {
+      try {
+        sendIPCEvent('goToRoute', `/main/site-info/${plan.siteJSON.id}`);
+      } catch {
+        // A navegação é conveniência; o site já está registrado e em execução.
+      }
+      await new Promise((resolve) => setTimeout(resolve, 750));
+    }
+
     // Garante que a interface do Local reflita o novo site e seu estado final.
     if (typeof siteData.emitSitesUpdate === 'function') {
       siteData.emitSitesUpdate();
+    }
+    try {
+      serviceContainer.cradle.sitesOrganization.moveSitesToGroup(
+        [plan.siteJSON.id],
+        'default',
+        true,
+      );
+    } catch {
+      // A associação inicial já foi feita; isto é apenas uma atualização final.
     }
     try {
       sendIPCEvent('siteAdded', plan.siteJSON);

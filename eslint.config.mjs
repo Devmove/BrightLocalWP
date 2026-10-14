@@ -14,6 +14,8 @@ export default [
         process: 'readonly',
         require: 'readonly',
         __dirname: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
       },
     },
   },

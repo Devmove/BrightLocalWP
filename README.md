@@ -94,7 +94,9 @@ Ao lado de cada órfão candidato há um botão **Restaurar**. O fluxo é:
    cria o banco `local` e importa o dump SQL (`local.sql` ou o primeiro `.sql`);
 6. detecta o domínio antigo gravado no banco e avisa quando ele difere do
    novo domínio, para ajuste posterior dos endereços no WordPress;
-7. emite atualização para a interface do Local (`refreshSites` + `siteAdded`).
+7. navega até o site restaurado (como na criação normal), aguarda a
+   remontagem das visões e então emite a atualização final da interface
+   (`refreshSites` + `siteAdded`).
 
 ## Exclusão de projetos órfãos
 
