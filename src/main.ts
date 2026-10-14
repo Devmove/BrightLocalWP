@@ -27,6 +27,23 @@ function toSiteJSON(site: any): any {
   return { ...site };
 }
 
+/**
+ * Exibe um toast nativo do Local. Usado na conclusão de operações longas
+ * (restore/exclusão), quando o usuário pode já ter saído do painel.
+ * Nunca interrompe o fluxo principal.
+ */
+function notify(kind: 'success' | 'error', message: string): void {
+  try {
+    sendIPCEvent('showToast', {
+      toastTrigger: 'import',
+      toastType: kind,
+      message,
+    });
+  } catch {
+    // Toast é informativo; o resultado já é exibido no painel do add-on.
+  }
+}
+
 async function getRegisteredSites(siteData: any): Promise<any[]> {
   const sites = siteData.getSites();
   return (Object.values(sites) as any[])
@@ -94,6 +111,21 @@ export default function main(context?: any): void {
     }
 
     siteData.addSite(plan.siteJSON.id, plan.siteJSON);
+    const warnings: string[] = [];
+    if (backupWarning) warnings.push(backupWarning);
+    // Coloca o site no grupo padrão e avisa a interface para recarregar a
+    // lista (a barra lateral renderiza a partir dos grupos, não do registro).
+    try {
+      serviceContainer.cradle.sitesOrganization.moveSitesToGroup(
+        [plan.siteJSON.id],
+        'default',
+        true,
+      );
+    } catch (error) {
+      warnings.push(
+        `Site registrado, mas não foi possível adicioná-lo ao grupo padrão: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
     if (typeof siteData.emitSitesUpdate === 'function') {
       siteData.emitSitesUpdate();
     }
@@ -101,8 +133,6 @@ export default function main(context?: any): void {
     // Provisiona o runtime do novo site (mesma sequência do Local ao criar um
     // site): inicializa o datadir do MySQL, inicia os serviços, define a senha
     // do root, cria o banco e importa o dump SQL do projeto original.
-    const warnings: string[] = [];
-    if (backupWarning) warnings.push(backupWarning);
     let running = false;
     let importedDump: string | null = null;
     let datadirBackup: string | null = null;
@@ -157,6 +187,18 @@ export default function main(context?: any): void {
       // Evento informativo; a atualização principal já foi emitida acima.
     }
 
+    if (running) {
+      notify(
+        'success',
+        `Projeto "${plan.siteJSON.name}" restaurado e em execução como ${plan.siteJSON.domain}.`,
+      );
+    } else {
+      notify(
+        'error',
+        `Projeto "${plan.siteJSON.name}" registrado, mas não entrou em execução. Verifique o painel do BrightLocalWP.`,
+      );
+    }
+
     return {
       site: {
         id: plan.siteJSON.id,
@@ -187,7 +229,16 @@ export default function main(context?: any): void {
     if (!shell || typeof shell.trashItem !== 'function') {
       throw new Error('Recurso de lixeira indisponível neste ambiente.');
     }
-    await shell.trashItem(candidatePath);
+    try {
+      await shell.trashItem(candidatePath);
+    } catch (error) {
+      notify(
+        'error',
+        `Não foi possível mover a pasta para a lixeira: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      throw error;
+    }
+    notify('success', `Pasta movida para a lixeira: ${candidatePath}`);
     return { path: candidatePath, trashed: true };
   });
 }

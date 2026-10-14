@@ -1,5 +1,14 @@
 import { resolve } from 'node:path';
-import { confirm, ipcAsync } from '@getflywheel/local/renderer';
+import { ipcAsync } from '@getflywheel/local/renderer';
+
+interface PendingAction {
+  kind: 'restore' | 'delete';
+  projectPath: string;
+  title: string;
+  lines: string[];
+  confirmLabel: string;
+  danger: boolean;
+}
 
 function ProjectScanner({ React }: { React: any }): any {
   const [state, setState] = React.useState({
@@ -8,11 +17,18 @@ function ProjectScanner({ React }: { React: any }): any {
     notice: '',
     restoringPath: '',
     deletingPath: '',
+    pending: null as PendingAction | null,
     result: null as any,
   });
 
-  const runScan = async () => {
-    setState((previous: any) => ({ ...previous, loading: true, error: '', notice: '' }));
+  const runScan = async (options: { clearMessages?: boolean } = {}) => {
+    const clear = options.clearMessages ?? false;
+    setState((previous: any) => ({
+      ...previous,
+      loading: true,
+      error: clear ? '' : previous.error,
+      notice: clear ? '' : previous.notice,
+    }));
     try {
       const result = await ipcAsync('brightlocalwp:scan');
       setState((previous: any) => ({ ...previous, loading: false, result }));
@@ -25,37 +41,83 @@ function ProjectScanner({ React }: { React: any }): any {
     }
   };
 
-  const restoreProject = async (project: any) => {
+  const askRestore = async (project: any) => {
     const projectPath = String(project.path);
-    setState((previous: any) => ({ ...previous, error: '', notice: '', restoringPath: projectPath }));
+    setState((previous: any) => ({ ...previous, error: '', notice: '', pending: null }));
     try {
       const preview = await ipcAsync('brightlocalwp:restore-preview', { path: projectPath });
       const evidence = preview.evidence ?? {};
       const sqlCount = Array.isArray(evidence.sqlDumps) ? evidence.sqlDumps.length : 0;
-      const details = [
-        `Pasta: ${projectPath}`,
-        `Nome: ${preview.name} · Domínio: ${preview.domain}`,
-        `Modelo de configuração: ${preview.templateSiteName ?? preview.templateSiteId}`,
-        `Servidor: ${evidence.webServer ?? 'desconhecido'}${evidence.phpHint ? ` · PHP sugerido: ${evidence.phpHint}` : ''} · wp-config: ${evidence.hasWpConfig ? 'encontrado' : 'não encontrado'} · dumps SQL: ${sqlCount}`,
-      ].join('\n');
-
-      try {
-        await confirm({
+      setState((previous: any) => ({
+        ...previous,
+        pending: {
+          kind: 'restore',
+          projectPath,
           title: 'Restaurar projeto órfão?',
-          message: `O projeto será registrado no Local, provisionado (banco de dados) e iniciado. O dump SQL será importado quando disponível. Nenhum arquivo será apagado ou movido. Isso pode levar alguns minutos.\n\n${details}\n\nAs versões de serviços são copiadas do site modelo e podem precisar de ajuste.`,
-          buttonText: 'Restaurar projeto',
-          cancelButtonText: 'Cancelar',
-          buttonClass: '',
-          topIcon: null,
-          topIconColor: 'Green',
-          largeConfirmButtonText: '',
-          showBottomHr: false,
-        });
-      } catch {
-        setState((previous: any) => ({ ...previous, restoringPath: '' }));
-        return;
-      }
+          lines: [
+            `Pasta: ${projectPath}`,
+            `Nome: ${preview.name} · Domínio: ${preview.domain}`,
+            `Modelo de configuração: ${preview.templateSiteName ?? preview.templateSiteId}`,
+            `Servidor: ${evidence.webServer ?? 'desconhecido'}${evidence.phpHint ? ` · PHP sugerido: ${evidence.phpHint}` : ''} · wp-config: ${evidence.hasWpConfig ? 'encontrado' : 'não encontrado'} · dumps SQL: ${sqlCount}`,
+            'O projeto será registrado no Local, provisionado (banco de dados) e iniciado. Isso pode levar alguns minutos. Nenhum arquivo será apagado ou movido.',
+          ],
+          confirmLabel: 'Confirmar restauração',
+          danger: false,
+        } as PendingAction,
+      }));
+    } catch (error) {
+      setState((previous: any) => ({
+        ...previous,
+        error: error instanceof Error ? error.message : String(error),
+      }));
+    }
+  };
 
+  const askDelete = async (project: any) => {
+    const projectPath = String(project.path);
+    setState((previous: any) => ({ ...previous, error: '', notice: '', pending: null }));
+    try {
+      const preview = await ipcAsync('brightlocalwp:delete-preview', { path: projectPath });
+      setState((previous: any) => ({
+        ...previous,
+        pending: {
+          kind: 'delete',
+          projectPath,
+          title: 'Excluir projeto órfão?',
+          lines: [
+            `Pasta: ${projectPath}`,
+            `Tamanho: ${preview.sizeText ?? 'desconhecido'}`,
+            'A pasta será movida para a lixeira do sistema (reversível). Nada será apagado definitivamente.',
+          ],
+          confirmLabel: 'Mover para a lixeira',
+          danger: true,
+        } as PendingAction,
+      }));
+    } catch (error) {
+      setState((previous: any) => ({
+        ...previous,
+        error: error instanceof Error ? error.message : String(error),
+      }));
+    }
+  };
+
+  const cancelPending = () => {
+    setState((previous: any) => ({ ...previous, pending: null }));
+  };
+
+  const confirmPending = async () => {
+    const pending = state.pending as PendingAction | null;
+    if (!pending) return;
+    if (pending.kind === 'restore') {
+      await runRestore(pending.projectPath);
+    } else {
+      await runDelete(pending.projectPath);
+    }
+  };
+
+  const runRestore = async (projectPath: string) => {
+    setState((previous: any) => ({ ...previous, error: '', notice: '', pending: null, restoringPath: projectPath }));
+    try {
       const restored = await ipcAsync('brightlocalwp:restore', { path: projectPath });
       const warnings = Array.isArray(restored.warnings) ? restored.warnings : [];
       const status = restored.running
@@ -64,7 +126,7 @@ function ProjectScanner({ React }: { React: any }): any {
       setState((previous: any) => ({
         ...previous,
         restoringPath: '',
-        notice: warnings.length > 0 ? `${status} Atenção: ${warnings.join(' ')}` : `${status} Se não aparecer na lista, reinicie o Local.`,
+        notice: warnings.length > 0 ? `${status} Atenção: ${warnings.join(' ')}` : status,
       }));
       await runScan();
     } catch (error) {
@@ -76,28 +138,9 @@ function ProjectScanner({ React }: { React: any }): any {
     }
   };
 
-  const deleteProject = async (project: any) => {
-    const projectPath = String(project.path);
-    setState((previous: any) => ({ ...previous, error: '', notice: '', deletingPath: projectPath }));
+  const runDelete = async (projectPath: string) => {
+    setState((previous: any) => ({ ...previous, error: '', notice: '', pending: null, deletingPath: projectPath }));
     try {
-      const preview = await ipcAsync('brightlocalwp:delete-preview', { path: projectPath });
-      try {
-        await confirm({
-          title: 'Excluir projeto órfão?',
-          message: `A pasta será movida para a lixeira do sistema (reversível). Nada será apagado definitivamente.\n\nPasta: ${projectPath}\nTamanho: ${preview.sizeText ?? 'desconhecido'}`,
-          buttonText: 'Mover para a lixeira',
-          cancelButtonText: 'Cancelar',
-          buttonClass: '',
-          topIcon: null,
-          topIconColor: 'Red',
-          largeConfirmButtonText: '',
-          showBottomHr: false,
-        });
-      } catch {
-        setState((previous: any) => ({ ...previous, deletingPath: '' }));
-        return;
-      }
-
       await ipcAsync('brightlocalwp:delete-orphan', { path: projectPath });
       setState((previous: any) => ({
         ...previous,
@@ -121,6 +164,7 @@ function ProjectScanner({ React }: { React: any }): any {
   const restoring = state.restoringPath !== '';
   const deleting = state.deletingPath !== '';
   const busy = state.loading || restoring || deleting;
+  const pending = state.pending as PendingAction | null;
 
   return React.createElement('div', { className: 'bright-local-wp-settings' },
     React.createElement('p', { className: 'bright-local-wp__description' },
@@ -131,11 +175,31 @@ function ProjectScanner({ React }: { React: any }): any {
     ),
     React.createElement('button', {
       className: 'bright-local-wp__button',
-      onClick: runScan,
+      onClick: () => runScan({ clearMessages: true }),
       disabled: busy,
     }, state.loading ? 'Verificando…' : 'Verificar projetos'),
     state.error && React.createElement('p', { className: 'bright-local-wp__error' }, state.error),
     state.notice && React.createElement('p', { className: 'bright-local-wp__success' }, state.notice),
+    pending && React.createElement('div', { className: `bright-local-wp__confirm${pending.danger ? ' is-danger' : ''}` },
+      React.createElement('strong', null, pending.title),
+      React.createElement('ul', null,
+        pending.lines.map((line: string, index: number) =>
+          React.createElement('li', { key: index }, line),
+        ),
+      ),
+      React.createElement('div', { className: 'bright-local-wp__confirm-actions' },
+        React.createElement('button', {
+          className: pending.danger ? 'bright-local-wp__delete-button' : 'bright-local-wp__button',
+          disabled: busy,
+          onClick: confirmPending,
+        }, pending.confirmLabel),
+        React.createElement('button', {
+          className: 'bright-local-wp__cancel-button',
+          disabled: busy,
+          onClick: cancelPending,
+        }, 'Cancelar'),
+      ),
+    ),
     result && React.createElement('div', { className: 'bright-local-wp__result' },
       React.createElement('p', null, `${projects.length} diretório(s) encontrado(s), ${orphans.length} órfão(s) candidato(s).`),
       roots.length > 0 && React.createElement('details', null,
@@ -160,12 +224,12 @@ function ProjectScanner({ React }: { React: any }): any {
               React.createElement('button', {
                 className: 'bright-local-wp__restore-button',
                 disabled: busy,
-                onClick: () => restoreProject(project),
+                onClick: () => askRestore(project),
               }, isRestoring ? 'Restaurando…' : 'Restaurar'),
               React.createElement('button', {
                 className: 'bright-local-wp__delete-button',
                 disabled: busy,
-                onClick: () => deleteProject(project),
+                onClick: () => askDelete(project),
               }, isDeleting ? 'Excluindo…' : 'Excluir'),
             ),
           );

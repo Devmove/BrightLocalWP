@@ -85,7 +85,7 @@ Ao lado de cada órfão candidato há um botão **Restaurar**. O fluxo é:
 1. o add-on analisa o diretório (servidor web, `wp-config.php`, dumps SQL);
 2. sugere nome e domínio livre e escolhe um site registrado com o mesmo
    servidor web como modelo de configuração;
-3. exibe tudo para confirmação explícita;
+3. exibe tudo para confirmação explícita em caixa inline no próprio painel;
 4. cria backup de `sites.json`, registra o projeto com portas livres e
    atualiza a lista de sites;
 5. provisiona o runtime como o Local faz ao criar um site: compila os configs,
@@ -100,7 +100,8 @@ Ao lado de cada órfão candidato há um botão **Restaurar**. O fluxo é:
 
 Ao lado de cada órfão candidato há também um botão **Excluir**. O fluxo é:
 
-1. mostra o tamanho da pasta para confirmação explícita;
+1. mostra o tamanho da pasta para confirmação explícita em caixa de
+   confirmação dentro do próprio painel (sem depender de diálogos externos);
 2. move a pasta para a lixeira do sistema (reversível, nada é apagado
    definitivamente);
 3. atualiza a lista de órfãos na interface.
